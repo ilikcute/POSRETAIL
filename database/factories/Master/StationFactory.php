@@ -23,6 +23,7 @@ class StationFactory extends Factory
             'name' => 'Kasir '.$this->faker->unique()->numberBetween(1, 10),
             'ip_address' => $this->faker->localIpv4(),
             'location' => 'Lantai '.$this->faker->numberBetween(1, 3),
+            'drawer_safety_limit' => 2000000.00,
             'is_active' => true,
         ];
     }

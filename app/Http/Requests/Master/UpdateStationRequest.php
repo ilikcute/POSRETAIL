@@ -17,6 +17,7 @@ class UpdateStationRequest extends FormRequest
             'name' => 'sometimes|required|string|max:255',
             'ip_address' => 'nullable|string|ip|max:45',
             'location' => 'nullable|string|max:255',
+            'drawer_safety_limit' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
         ];
     }

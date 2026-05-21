@@ -14,10 +14,12 @@ class Station extends Model
         'name',
         'ip_address',
         'location',
+        'drawer_safety_limit',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'drawer_safety_limit' => 'float',
     ];
 }

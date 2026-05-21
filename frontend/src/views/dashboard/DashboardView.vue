@@ -39,7 +39,7 @@ const currentTabComponent = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#eaf6f6] flex flex-row font-sans overflow-hidden">
+  <div class="h-screen bg-[#eaf6f6] flex flex-row font-sans overflow-hidden">
     <!-- Sidebar Navigation (collapsible) -->
     <Sidebar
       :active-tab="activeTab"

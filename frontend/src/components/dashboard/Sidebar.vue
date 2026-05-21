@@ -96,6 +96,30 @@ const menuGroups = [
       { id: 'Jurnal Entry', icon: 'pencil-square', title: 'Jurnal Entry' },
       { id: 'Debt Ledger', icon: 'credit-card', title: 'Debt Ledger' }
     ]
+  },
+  {
+    name: 'Setting',
+    icon: 'setting',
+    items: [
+      { id: 'User Management', icon: 'user', title: 'User Management' },
+      { id: 'Role Management', icon: 'shield', title: 'Role Management' },
+      { id: 'Privilege Management', icon: 'lock-closed', title: 'Privilege Management' },
+      { id: 'Menu Management', icon: 'list', title: 'Menu Management' },
+      { id: 'Form Management', icon: 'document-text', title: 'Form Management' },
+      { id: 'Button Management', icon: 'button', title: 'Button Management' },
+      { id: 'Theme Settings', icon: 'palette', title: 'Theme Settings' },
+      { id: 'Language Settings', icon: 'globe-alt', title: 'Language Settings' },
+      { id: 'Currency Settings', icon: 'currency-dollar', title: 'Currency Settings' },
+      { id: 'Company Settings', icon: 'building-office', title: 'Company Settings' },
+      { id: 'Outlet Settings', icon: 'storefront', title: 'Outlet Settings' },
+      { id: 'Department Settings', icon: 'briefcase', title: 'Department Settings' },
+      { id: 'Employee Settings', icon: 'user-group', title: 'Employee Settings' },
+      { id: 'Branch Settings', icon: 'building', title: 'Branch Settings' },
+      { id: 'Company Profile', icon: 'identification', title: 'Company Profile' },
+      { id: 'Outlet Profile', icon: 'identification', title: 'Outlet Profile' },
+      { id: 'Department Profile', icon: 'identification', title: 'Department Profile' },
+      { id: 'Employee Profile', icon: 'identification', title: 'Employee Profile' }
+    ]
   }
 ]
 

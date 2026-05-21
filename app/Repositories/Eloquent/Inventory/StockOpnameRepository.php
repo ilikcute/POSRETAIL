@@ -1,0 +1,176 @@
+<?php
+
+namespace App\Repositories\Eloquent\Inventory;
+
+use App\Repositories\Eloquent\BaseRepository;
+
+use App\Models\Inventory\StockOpname;
+use App\Models\Inventory\StockOpnameItem;
+use App\Models\Master\Product;
+use App\Models\Inventory\ProductStock;
+use App\Repositories\Contracts\Inventory\StockOpnameRepositoryInterface;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+
+class StockOpnameRepository extends BaseRepository implements StockOpnameRepositoryInterface
+{
+    public function __construct(StockOpname $model)
+    {
+        parent::__construct($model);
+    }
+
+    public function create(array $attributes): Model
+    {
+        return DB::transaction(function () use ($attributes) {
+            $items = $attributes['items'];
+            unset($attributes['items']);
+
+            $attributes['reference_no'] = 'SO-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $attributes['created_by'] = auth()->id() ?? 1;
+            $attributes['status'] = 'draft';
+
+            $stockOpname = parent::create($attributes);
+
+            $processedItems = [];
+            foreach ($items as $item) {
+                $product = Product::findOrFail($item['product_id']);
+                
+                // Cari stock terdaftar saat ini di sistem
+                $stock = ProductStock::where('warehouse_id', $stockOpname->warehouse_id)
+                    ->where('product_id', $item['product_id'])
+                    ->where('product_variant_id', $item['product_variant_id'] ?? null)
+                    ->first();
+
+                $systemQty = $stock ? $stock->qty : 0;
+                $physicalQty = $item['physical_qty'];
+                $discrepancy = $physicalQty - $systemQty;
+                $unitCost = $product->cost_price;
+                $discrepancyValue = $discrepancy * $unitCost;
+
+                $processedItems[] = [
+                    'product_id' => $item['product_id'],
+                    'product_variant_id' => $item['product_variant_id'] ?? null,
+                    'system_qty' => $systemQty,
+                    'physical_qty' => $physicalQty,
+                    'discrepancy' => $discrepancy,
+                    'unit_cost' => $unitCost,
+                    'discrepancy_value' => $discrepancyValue,
+                    'notes' => $item['notes'] ?? null,
+                ];
+            }
+
+            $stockOpname->items()->createMany($processedItems);
+
+            return $stockOpname->load('items');
+        });
+    }
+
+    public function update(int $id, array $attributes): Model
+    {
+        return DB::transaction(function () use ($id, $attributes) {
+            $stockOpname = $this->findOrFail($id);
+            $oldStatus = $stockOpname->status;
+            $newStatus = $attributes['status'] ?? $oldStatus;
+
+            // Jika disetujui (Approve Stock Opname)
+            if ($oldStatus === 'draft' && $newStatus === 'approved') {
+                $this->approveStockOpname($stockOpname);
+                $attributes['approved_by'] = auth()->id() ?? 1;
+                $attributes['approved_at'] = now();
+            } elseif ($oldStatus === 'draft' && $newStatus === 'cancelled') {
+                // Batalkan
+                $stockOpname->status = 'cancelled';
+                $stockOpname->save();
+            }
+
+            // Hapus items dari array agar tidak bentrok dengan Eloquent update bawaan jika ada
+            if (isset($attributes['items'])) {
+                unset($attributes['items']);
+            }
+
+            return parent::update($id, $attributes)->load('items');
+        });
+    }
+
+    protected function approveStockOpname(StockOpname $stockOpname)
+    {
+        // 1. Update Stok Fisik di Warehouse
+        foreach ($stockOpname->items as $item) {
+            $stock = ProductStock::where('warehouse_id', $stockOpname->warehouse_id)
+                ->where('product_id', $item->product_id)
+                ->where('product_variant_id', $item->product_variant_id)
+                ->first();
+
+            if ($stock) {
+                $stock->qty = $item->physical_qty;
+                $stock->save();
+            } else {
+                ProductStock::create([
+                    'warehouse_id' => $stockOpname->warehouse_id,
+                    'product_id' => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'qty' => $item->physical_qty,
+                ]);
+            }
+        }
+
+        // 2. Buat Jurnal Penyesuaian Akuntansi Otomatis
+        $totalDiscrepancyValue = $stockOpname->items->sum('discrepancy_value');
+
+        if ($totalDiscrepancyValue != 0) {
+            $inventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first(); // Aset Persediaan
+            $adjustmentExpenseAccount = \App\Models\Finance\Account::where('code', '5202')->first(); // Beban Selisih Stock
+            $adjustmentRevenueAccount = \App\Models\Finance\Account::where('code', '4201')->first(); // Pendapatan Lain-lain
+
+            if (!$inventoryAccount || !$adjustmentExpenseAccount || !$adjustmentRevenueAccount) {
+                return;
+            }
+
+            $entry = \App\Models\Finance\JournalEntry::create([
+                'reference_no' => 'JV-SO-' . str_pad($stockOpname->id, 6, '0', STR_PAD_LEFT),
+                'transaction_date' => now()->format('Y-m-d'),
+                'description' => 'Penyesuaian Akuntansi atas Selisih Stock Opname #' . $stockOpname->reference_no,
+                'created_by' => auth()->id() ?? 1,
+            ]);
+
+            if ($totalDiscrepancyValue > 0) {
+                // Kelebihan stok fisik (Surplus) -> Persediaan bertambah (Debet), Pendapatan Lain bertambah (Kredit)
+                $entry->items()->create([
+                    'account_id' => $inventoryAccount->id,
+                    'debit' => $totalDiscrepancyValue,
+                    'credit' => 0,
+                ]);
+                $inventoryAccount->balance += $totalDiscrepancyValue;
+                $inventoryAccount->save();
+
+                $entry->items()->create([
+                    'account_id' => $adjustmentRevenueAccount->id,
+                    'debit' => 0,
+                    'credit' => $totalDiscrepancyValue,
+                ]);
+                $adjustmentRevenueAccount->balance += $totalDiscrepancyValue;
+                $adjustmentRevenueAccount->save();
+
+            } else {
+                // Kekurangan stok fisik (Defisit/Susut) -> Beban bertambah (Debet), Persediaan berkurang (Kredit)
+                $absLoss = abs($totalDiscrepancyValue);
+
+                $entry->items()->create([
+                    'account_id' => $adjustmentExpenseAccount->id,
+                    'debit' => $absLoss,
+                    'credit' => 0,
+                ]);
+                $adjustmentExpenseAccount->balance += $absLoss;
+                $adjustmentExpenseAccount->save();
+
+                $entry->items()->create([
+                    'account_id' => $inventoryAccount->id,
+                    'debit' => 0,
+                    'credit' => $absLoss,
+                ]);
+                $inventoryAccount->balance -= $absLoss;
+                $inventoryAccount->save();
+            }
+        }
+    }
+}

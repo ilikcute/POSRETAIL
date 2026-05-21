@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Sales\StoreShiftRequest;
 use App\Http\Requests\Sales\UpdateShiftRequest;
 use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
@@ -24,6 +23,7 @@ class ShiftController extends Controller
     public function index(): JsonResponse
     {
         $shifts = $this->shiftRepository->all();
+
         return $this->successResponse($shifts, 'Shifts retrieved successfully');
     }
 
@@ -31,6 +31,7 @@ class ShiftController extends Controller
     public function store(StoreShiftRequest $request): JsonResponse
     {
         $shift = $this->shiftRepository->create($request->validated());
+
         return $this->successResponse($shift, 'Shift opened successfully', 201);
     }
 
@@ -38,6 +39,7 @@ class ShiftController extends Controller
     {
         $shift = $this->shiftRepository->findOrFail($id);
         $shift->load(['user', 'station']);
+
         return $this->successResponse($shift, 'Shift details retrieved successfully');
     }
 
@@ -46,6 +48,7 @@ class ShiftController extends Controller
     {
         try {
             $shift = $this->shiftRepository->closeShift($id, $request->validated());
+
             return $this->successResponse($shift, 'Shift closed successfully');
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
@@ -55,6 +58,7 @@ class ShiftController extends Controller
     public function destroy($id): JsonResponse
     {
         $this->shiftRepository->delete($id);
+
         return $this->successResponse(null, 'Shift deleted successfully');
     }
 }

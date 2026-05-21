@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Master\Store;
 use App\Models\Sales\Shift;
 use App\Repositories\Contracts\Finance\CashTransactionRepositoryInterface;
+use Illuminate\Database\Seeder;
 
 class CashTransactionSeeder extends Seeder
 {

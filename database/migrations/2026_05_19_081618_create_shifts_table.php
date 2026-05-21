@@ -12,12 +12,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->foreignId('station_id')->constrained('stations')->restrictOnDelete();
-            
+
             $table->dateTime('start_time');
             $table->dateTime('end_time')->nullable();
-            
+
             $table->decimal('starting_cash', 15, 2)->default(0);
-            
+
             $table->decimal('total_sales', 15, 2)->default(0);
             $table->decimal('total_discount', 15, 2)->default(0);
 
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->decimal('expected_cash', 15, 2)->default(0);
             $table->decimal('actual_cash', 15, 2)->nullable();
             $table->decimal('difference_cash', 15, 2)->default(0);
-            
+
             // QRIS breakdown
             $table->decimal('expected_qris', 15, 2)->default(0);
             $table->decimal('actual_qris', 15, 2)->nullable();

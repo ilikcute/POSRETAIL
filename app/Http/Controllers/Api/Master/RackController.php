@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Master;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Master\StoreRackRequest;
 use App\Http\Requests\Master\UpdateRackRequest;
 use App\Models\Master\Rack;
@@ -28,12 +27,14 @@ class RackController extends Controller
     {
         $racks = $this->rackRepository->all();
         $racks->load('warehouse');
+
         return $this->successResponse($racks, 'Racks retrieved successfully');
     }
 
     public function store(StoreRackRequest $request): JsonResponse
     {
         $rack = $this->rackRepository->create($request->validated());
+
         return $this->successResponse($rack, 'Rack created successfully', 201);
     }
 
@@ -41,18 +42,21 @@ class RackController extends Controller
     {
         $rack = $this->rackRepository->findOrFail($id);
         $rack->load(['warehouse', 'products']);
+
         return $this->successResponse($rack, 'Rack retrieved successfully');
     }
 
     public function update(UpdateRackRequest $request, $id): JsonResponse
     {
         $rack = $this->rackRepository->update($id, $request->validated());
+
         return $this->successResponse($rack, 'Rack updated successfully');
     }
 
     public function destroy($id): JsonResponse
     {
         $this->rackRepository->delete($id);
+
         return $this->successResponse(null, 'Rack deleted successfully');
     }
 
@@ -63,20 +67,20 @@ class RackController extends Controller
     {
         $rack = Rack::with(['warehouse', 'products' => function ($query) {
             $query->orderBy('shelf_level', 'desc')
-                  ->orderBy('position_order', 'asc');
+                ->orderBy('position_order', 'asc');
         }])->findOrFail($id);
 
         $shelves = [];
-        
+
         // Kelompokkan produk berdasarkan tingkat rak (shelf_level)
         foreach ($rack->products as $product) {
             $level = $product->pivot->shelf_level;
-            
-            if (!isset($shelves[$level])) {
+
+            if (! isset($shelves[$level])) {
                 $shelves[$level] = [
                     'shelf_level' => $level,
-                    'level_name' => 'Shelf Level ' . $level,
-                    'products' => []
+                    'level_name' => 'Shelf Level '.$level,
+                    'products' => [],
                 ];
             }
 
@@ -92,7 +96,7 @@ class RackController extends Controller
                     'position_order' => $product->pivot->position_order,
                     'facing' => $product->pivot->facing,
                     'max_capacity' => $product->pivot->max_capacity,
-                ]
+                ],
             ];
         }
 
@@ -106,7 +110,7 @@ class RackController extends Controller
                 'name' => $rack->name,
                 'warehouse_name' => $rack->warehouse->name,
             ],
-            'shelves' => array_values($shelves)
+            'shelves' => array_values($shelves),
         ];
 
         return $this->successResponse($layout, 'Rack planogram layout retrieved successfully');

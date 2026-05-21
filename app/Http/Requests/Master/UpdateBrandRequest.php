@@ -16,7 +16,7 @@ class UpdateBrandRequest extends FormRequest
         $id = $this->route('brand');
 
         return [
-            'name' => 'sometimes|required|string|max:255|unique:brands,name,' . $id,
+            'name' => 'sometimes|required|string|max:255|unique:brands,name,'.$id,
             'description' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'is_active' => 'boolean',

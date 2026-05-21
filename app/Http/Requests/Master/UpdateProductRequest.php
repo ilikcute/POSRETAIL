@@ -14,15 +14,15 @@ class UpdateProductRequest extends FormRequest
     public function rules(): array
     {
         $id = $this->route('product');
-        
+
         return [
             'category_id' => 'sometimes|required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'unit_id' => 'sometimes|required|exists:units,id',
-            'code' => 'sometimes|required|string|max:50|unique:products,code,' . $id,
+            'code' => 'sometimes|required|string|max:50|unique:products,code,'.$id,
             'name' => 'sometimes|required|string|max:255',
-            'sku' => 'nullable|string|max:100|unique:products,sku,' . $id,
-            'barcode' => 'nullable|string|max:100|unique:products,barcode,' . $id,
+            'sku' => 'nullable|string|max:100|unique:products,sku,'.$id,
+            'barcode' => 'nullable|string|max:100|unique:products,barcode,'.$id,
             'cost_price' => 'sometimes|required|numeric|min:0',
             'price' => 'sometimes|required|numeric|min:0',
             'wholesale_price' => 'nullable|numeric|min:0',

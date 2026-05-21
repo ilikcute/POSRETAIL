@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Master\Warehouse;
-use App\Models\Master\Product;
 use App\Models\Inventory\ProductStock;
+use App\Models\Master\Product;
+use App\Models\Master\Warehouse;
 use App\Repositories\Contracts\Inventory\StockOpnameRepositoryInterface;
+use Illuminate\Database\Seeder;
 
 class StockOpnameSeeder extends Seeder
 {
@@ -42,8 +42,8 @@ class StockOpnameSeeder extends Seeder
                         'product_variant_id' => null,
                         'physical_qty' => $physicalQty,
                         'notes' => 'Barang pecah di rak belakang',
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
             // 2. Setujui (Approve) agar terposting ke Akuntansi dan mengurangi stok riil!

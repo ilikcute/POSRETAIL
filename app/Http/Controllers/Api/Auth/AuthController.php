@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Repositories\Contracts\Auth\UserRepositoryInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
-use App\Repositories\Contracts\Auth\UserRepositoryInterface;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
 {
@@ -25,16 +28,16 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         $user = $this->userRepository->findByEmail($request->email);
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return $this->errorResponse('Kredensial tidak valid', 401);
         }
 
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             return $this->errorResponse('Akun Anda dinonaktifkan', 403);
         }
 
@@ -47,7 +50,7 @@ class AuthController extends Controller
         return $this->successResponse([
             'user' => $user->load('roles'), // load roles dari spatie
             'access_token' => $token,
-            'token_type' => 'Bearer'
+            'token_type' => 'Bearer',
         ], 'Login berhasil');
     }
 
@@ -62,12 +65,12 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return $this->successResponse(
-            $request->user()->load('roles'), 
+            $request->user()->load('roles'),
             'Data user berhasil diambil'
         );
     }
 
-    public function register(\App\Http\Requests\Auth\RegisterRequest $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
         $user = $this->userRepository->create([
             'name' => $request->name,
@@ -84,36 +87,36 @@ class AuthController extends Controller
         return $this->successResponse([
             'user' => $user->load('roles'),
             'access_token' => $token,
-            'token_type' => 'Bearer'
+            'token_type' => 'Bearer',
         ], 'Registrasi berhasil', 201);
     }
 
-    public function forgotPassword(\App\Http\Requests\Auth\ForgotPasswordRequest $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $status = \Illuminate\Support\Facades\Password::broker()->sendResetLink(
+        $status = Password::broker()->sendResetLink(
             $request->only('email')
         );
 
-        if ($status === \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
+        if ($status === Password::RESET_LINK_SENT) {
             return $this->successResponse(null, __($status));
         }
 
         return $this->errorResponse(__($status), 400);
     }
 
-    public function resetPassword(\App\Http\Requests\Auth\ResetPasswordRequest $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $status = \Illuminate\Support\Facades\Password::broker()->reset(
+        $status = Password::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
                 // Di sini kita update via repository
                 $this->userRepository->update($user->id, [
-                    'password' => Hash::make($password)
+                    'password' => Hash::make($password),
                 ]);
             }
         );
 
-        if ($status === \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+        if ($status === Password::PASSWORD_RESET) {
             return $this->successResponse(null, __($status));
         }
 

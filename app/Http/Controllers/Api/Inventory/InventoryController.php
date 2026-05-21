@@ -3,17 +3,16 @@
 namespace App\Http\Controllers\Api\Inventory;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\Master\Product;
+use App\Models\Finance\Account;
 use App\Models\Inventory\ProductStock;
+use App\Models\Inventory\StockDisposalItem;
+use App\Models\Inventory\StockOpnameItem;
+use App\Models\Master\Product;
 use App\Models\Purchase\PurchaseItem;
 use App\Models\Sales\SaleItem;
-use App\Models\Inventory\StockOpnameItem;
-use App\Models\Inventory\StockDisposalItem;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
@@ -76,9 +75,9 @@ class InventoryController extends Controller
                 'reference_no' => $item->purchase->reference_no,
                 'warehouse' => $item->purchase->warehouse->name,
                 'type' => 'Pembelian Masuk',
-                'qty_in' => (float)$item->qty,
+                'qty_in' => (float) $item->qty,
                 'qty_out' => 0.0,
-                'unit_cost' => (float)$item->unit_cost,
+                'unit_cost' => (float) $item->unit_cost,
                 'description' => $item->purchase->notes ?? 'Penerimaan stok dari supplier',
             ]);
         }
@@ -102,8 +101,8 @@ class InventoryController extends Controller
                 'warehouse' => $item->sale->warehouse->name,
                 'type' => 'Penjualan Keluar',
                 'qty_in' => 0.0,
-                'qty_out' => (float)$item->qty,
-                'unit_cost' => (float)$item->cost_price,
+                'qty_out' => (float) $item->qty,
+                'unit_cost' => (float) $item->cost_price,
                 'description' => 'Penjualan POS ke pelanggan',
             ]);
         }
@@ -127,9 +126,9 @@ class InventoryController extends Controller
                 'reference_no' => $item->stockOpname->reference_no,
                 'warehouse' => $item->stockOpname->warehouse->name,
                 'type' => 'Stock Opname',
-                'qty_in' => $isSurplus ? (float)$item->discrepancy : 0.0,
-                'qty_out' => !$isSurplus ? (float)abs($item->discrepancy) : 0.0,
-                'unit_cost' => (float)$item->unit_cost,
+                'qty_in' => $isSurplus ? (float) $item->discrepancy : 0.0,
+                'qty_out' => ! $isSurplus ? (float) abs($item->discrepancy) : 0.0,
+                'unit_cost' => (float) $item->unit_cost,
                 'description' => $item->notes ?? 'Penyesuaian hasil audit fisik',
             ]);
         }
@@ -153,9 +152,9 @@ class InventoryController extends Controller
                 'warehouse' => $item->stockDisposal->warehouse->name,
                 'type' => 'Pumusnahan Stok',
                 'qty_in' => 0.0,
-                'qty_out' => (float)$item->qty,
-                'unit_cost' => (float)$item->unit_cost,
-                'description' => 'Pemusnahan barang rusak (' . $item->stockDisposal->reason . ')',
+                'qty_out' => (float) $item->qty,
+                'unit_cost' => (float) $item->unit_cost,
+                'description' => 'Pemusnahan barang rusak ('.$item->stockDisposal->reason.')',
             ]);
         }
 
@@ -167,6 +166,7 @@ class InventoryController extends Controller
         $ledger = $sortedMovements->map(function ($m) use (&$runningBalance) {
             $runningBalance += ($m['qty_in'] - $m['qty_out']);
             $m['running_balance'] = round($runningBalance, 2);
+
             return $m;
         });
 
@@ -177,7 +177,7 @@ class InventoryController extends Controller
                 'name' => $product->name,
                 'current_stock' => round($product->stocks()->sum('qty'), 2),
             ],
-            'stock_ledger' => $ledger
+            'stock_ledger' => $ledger,
         ];
 
         return $this->successResponse($responseData, 'Product stock card retrieved successfully');
@@ -198,6 +198,7 @@ class InventoryController extends Controller
 
         $valuationData = $query->get()->map(function ($stock) {
             $value = $stock->qty * $stock->product->cost_price;
+
             return [
                 'warehouse_name' => $stock->warehouse->name,
                 'product_code' => $stock->product->code,
@@ -212,8 +213,8 @@ class InventoryController extends Controller
         $grandTotalValuation = $valuationData->sum('valuation_value');
 
         // Ambil pembanding dari saldo akun Buku Besar Persediaan "1201"
-        $accountingInventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first();
-        $ledgerBalance = $accountingInventoryAccount ? (float)$accountingInventoryAccount->balance : 0.0;
+        $accountingInventoryAccount = Account::where('code', '1201')->first();
+        $ledgerBalance = $accountingInventoryAccount ? (float) $accountingInventoryAccount->balance : 0.0;
 
         $report = [
             'metadata' => [
@@ -229,7 +230,7 @@ class InventoryController extends Controller
                 'general_ledger_balance' => round($ledgerBalance, 2),
                 'valuation_difference' => round($grandTotalValuation - $ledgerBalance, 2), // Wajib 0 untuk membuktikan integritas total!
             ],
-            'details' => $valuationData
+            'details' => $valuationData,
         ];
 
         return $this->successResponse($report, 'Inventory valuation report retrieved successfully');

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Master\Brand;
+use Illuminate\Database\Seeder;
 
 class BrandSeeder extends Seeder
 {
@@ -15,13 +15,13 @@ class BrandSeeder extends Seeder
             'Nestle',
             'Wings',
             'Coca-Cola',
-            'Danone'
+            'Danone',
         ];
 
         foreach ($brands as $brand) {
             Brand::create([
                 'name' => $brand,
-                'description' => 'Merek resmi ' . $brand,
+                'description' => 'Merek resmi '.$brand,
                 'is_active' => true,
             ]);
         }

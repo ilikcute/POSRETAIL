@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Master\ProductVariant;
 use App\Models\Master\Product;
+use App\Models\Master\ProductVariant;
+use Illuminate\Database\Seeder;
 
 class ProductVariantSeeder extends Seeder
 {
     public function run(): void
     {
         $product1 = Product::where('code', 'PRD-001')->first();
-        
+
         if ($product1) {
             ProductVariant::create([
                 'product_id' => $product1->id,

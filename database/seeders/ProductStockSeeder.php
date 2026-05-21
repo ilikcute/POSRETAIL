@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Inventory\ProductStock;
 use App\Models\Master\Product;
-use App\Models\Master\Warehouse;
 use App\Models\Master\Rack;
+use App\Models\Master\Warehouse;
+use Illuminate\Database\Seeder;
 
 class ProductStockSeeder extends Seeder
 {

@@ -16,7 +16,7 @@ class StoreJournalEntryRequest extends FormRequest
         return [
             'transaction_date' => 'required|date',
             'description' => 'nullable|string',
-            
+
             // Journal items must balance (Debit sum = Credit sum)
             'items' => 'required|array|min:2',
             'items.*.account_id' => 'required|exists:accounts,id',

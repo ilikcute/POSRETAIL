@@ -2,11 +2,12 @@
 
 namespace Database\Factories\Sales;
 
+use App\Models\Sales\Promotion;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PromotionFactory extends Factory
 {
-    protected $model = \App\Models\Sales\Promotion::class;
+    protected $model = Promotion::class;
 
     public function definition(): array
     {

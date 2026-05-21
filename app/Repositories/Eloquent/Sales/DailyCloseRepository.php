@@ -2,13 +2,12 @@
 
 namespace App\Repositories\Eloquent\Sales;
 
-use App\Repositories\Eloquent\BaseRepository;
-
+use App\Models\Purchase\Purchase;
 use App\Models\Sales\DailyClose;
 use App\Models\Sales\Sale;
-use App\Models\Purchase\Purchase;
 use App\Models\Sales\Shift;
 use App\Repositories\Contracts\Sales\DailyCloseRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 

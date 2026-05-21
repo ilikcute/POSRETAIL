@@ -2,14 +2,15 @@
 
 namespace Database\Factories\Sales;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Master\Store;
 use App\Models\Master\Station;
+use App\Models\Master\Store;
 use App\Models\Master\Warehouse;
+use App\Models\Sales\Sale;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class SaleFactory extends Factory
 {
-    protected $model = \App\Models\Sales\Sale::class;
+    protected $model = Sale::class;
 
     public function definition(): array
     {
@@ -18,7 +19,7 @@ class SaleFactory extends Factory
             'station_id' => Station::inRandomOrder()->first()->id ?? Station::factory(),
             'warehouse_id' => Warehouse::inRandomOrder()->first()->id ?? Warehouse::factory(),
             'created_by' => 1,
-            'invoice_no' => 'INV-202605-' . str_pad($this->faker->unique()->numberBetween(1, 99999), 5, '0', STR_PAD_LEFT),
+            'invoice_no' => 'INV-202605-'.str_pad($this->faker->unique()->numberBetween(1, 99999), 5, '0', STR_PAD_LEFT),
             'status' => 'completed',
             'payment_method' => 'cash',
             'total_items' => 0,

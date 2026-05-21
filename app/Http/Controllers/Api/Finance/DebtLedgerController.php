@@ -3,17 +3,16 @@
 namespace App\Http\Controllers\Api\Finance;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\Purchase\Purchase;
-use App\Models\Sales\Sale;
 use App\Models\Finance\Account;
 use App\Models\Finance\JournalEntry;
 use App\Models\Finance\JournalItem;
+use App\Models\Purchase\Purchase;
+use App\Models\Sales\Sale;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class DebtLedgerController extends Controller
@@ -26,7 +25,7 @@ class DebtLedgerController extends Controller
     protected function getOrCreateReceivableAccount()
     {
         $account = Account::where('code', '1103')->first();
-        if (!$account) {
+        if (! $account) {
             $account = Account::create([
                 'code' => '1103',
                 'name' => 'Piutang Dagang',
@@ -35,6 +34,7 @@ class DebtLedgerController extends Controller
                 'description' => 'Hak tagih pembayaran atas penjualan kredit kepada pelanggan',
             ]);
         }
+
         return $account;
     }
 
@@ -56,10 +56,10 @@ class DebtLedgerController extends Controller
             ->orderBy('due_date', 'asc')
             ->get()
             ->map(function ($purchase) {
-                $grandTotal = (float)$purchase->grand_total;
-                $amountPaid = (float)$purchase->amount_paid;
+                $grandTotal = (float) $purchase->grand_total;
+                $amountPaid = (float) $purchase->amount_paid;
                 $outstanding = max(0.0, $grandTotal - $amountPaid);
-                
+
                 $dueDate = $purchase->due_date ? Carbon::parse($purchase->due_date) : null;
                 $ageDays = $dueDate ? max(0, $dueDate->diffInDays(now(), false)) : 0;
                 $isOverdue = $dueDate ? now()->greaterThan($dueDate) : false;
@@ -88,7 +88,7 @@ class DebtLedgerController extends Controller
 
         return $this->successResponse([
             'summary' => $summary,
-            'ledger' => $debts
+            'ledger' => $debts,
         ], 'Accounts Payable (AP) Ledger retrieved successfully');
     }
 
@@ -111,8 +111,10 @@ class DebtLedgerController extends Controller
         ];
 
         foreach ($debts as $purchase) {
-            $outstanding = (float)$purchase->grand_total - (float)$purchase->amount_paid;
-            if ($outstanding <= 0) continue;
+            $outstanding = (float) $purchase->grand_total - (float) $purchase->amount_paid;
+            if ($outstanding <= 0) {
+                continue;
+            }
 
             $date = Carbon::parse($purchase->created_at);
             $ageDays = max(0, $date->diffInDays(now()));
@@ -135,11 +137,11 @@ class DebtLedgerController extends Controller
             'total_outstanding_ap' => $totalAging,
             'buckets' => $agingBuckets,
             'percentage' => [
-                'current' => $totalAging > 0 ? round(($agingBuckets['current'] / $totalAging) * 100, 2) . '%' : '0%',
-                'aging_31_60' => $totalAging > 0 ? round(($agingBuckets['aging_31_60'] / $totalAging) * 100, 2) . '%' : '0%',
-                'aging_61_90' => $totalAging > 0 ? round(($agingBuckets['aging_61_90'] / $totalAging) * 100, 2) . '%' : '0%',
-                'over_90' => $totalAging > 0 ? round(($agingBuckets['over_90'] / $totalAging) * 100, 2) . '%' : '0%',
-            ]
+                'current' => $totalAging > 0 ? round(($agingBuckets['current'] / $totalAging) * 100, 2).'%' : '0%',
+                'aging_31_60' => $totalAging > 0 ? round(($agingBuckets['aging_31_60'] / $totalAging) * 100, 2).'%' : '0%',
+                'aging_61_90' => $totalAging > 0 ? round(($agingBuckets['aging_61_90'] / $totalAging) * 100, 2).'%' : '0%',
+                'over_90' => $totalAging > 0 ? round(($agingBuckets['over_90'] / $totalAging) * 100, 2).'%' : '0%',
+            ],
         ];
 
         return $this->successResponse($report, 'Accounts Payable (AP) Aging Report generated successfully');
@@ -159,27 +161,27 @@ class DebtLedgerController extends Controller
         ]);
 
         $purchaseId = $request->input('purchase_id');
-        $paymentAmount = (float)$request->input('payment_amount');
+        $paymentAmount = (float) $request->input('payment_amount');
         $bankAccountCode = $request->input('bank_account_code');
         $notes = $request->input('notes') ?? 'Pembayaran Utang Dagang';
 
         $result = DB::transaction(function () use ($purchaseId, $paymentAmount, $bankAccountCode, $notes) {
             $purchase = Purchase::findOrFail($purchaseId);
-            $grandTotal = (float)$purchase->grand_total;
-            $currentPaid = (float)$purchase->amount_paid;
+            $grandTotal = (float) $purchase->grand_total;
+            $currentPaid = (float) $purchase->amount_paid;
             $outstanding = max(0.0, $grandTotal - $currentPaid);
 
             if ($paymentAmount > $outstanding) {
                 return [
                     'success' => false,
-                    'message' => "Jumlah pembayaran (Rp " . number_format($paymentAmount, 0, ',', '.') . ") melebihi sisa utang (Rp " . number_format($outstanding, 0, ',', '.') . ")"
+                    'message' => 'Jumlah pembayaran (Rp '.number_format($paymentAmount, 0, ',', '.').') melebihi sisa utang (Rp '.number_format($outstanding, 0, ',', '.').')',
                 ];
             }
 
             // 1. Update Nominal Terbayar & Status Pembayaran di Pembelian
             $newPaid = $currentPaid + $paymentAmount;
             $purchase->amount_paid = $newPaid;
-            
+
             if ($newPaid >= $grandTotal) {
                 $purchase->payment_status = 'paid';
             } else {
@@ -193,8 +195,8 @@ class DebtLedgerController extends Controller
             $apAccount = Account::where('code', '2101')->firstOrFail();
             $cashAccount = Account::where('code', $bankAccountCode)->firstOrFail();
 
-            $journalRef = 'JV-AP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
-            
+            $journalRef = 'JV-AP-'.now()->format('Ymd').'-'.strtoupper(Str::random(4));
+
             $journal = JournalEntry::create([
                 'reference_no' => $journalRef,
                 'transaction_date' => now()->toDateString(),
@@ -229,7 +231,7 @@ class DebtLedgerController extends Controller
                     'outstanding_debt' => max(0.0, $grandTotal - $newPaid),
                     'payment_status' => $purchase->payment_status,
                     'journal_entry' => $journalRef,
-                ]
+                ],
             ];
         });
 
@@ -257,8 +259,8 @@ class DebtLedgerController extends Controller
             ->orderBy('due_date', 'asc')
             ->get()
             ->map(function ($sale) {
-                $grandTotal = (float)$sale->grand_total;
-                $amountPaid = (float)$sale->amount_paid;
+                $grandTotal = (float) $sale->grand_total;
+                $amountPaid = (float) $sale->amount_paid;
                 $outstanding = max(0.0, $grandTotal - $amountPaid);
 
                 $dueDate = $sale->due_date ? Carbon::parse($sale->due_date) : null;
@@ -289,7 +291,7 @@ class DebtLedgerController extends Controller
 
         return $this->successResponse([
             'summary' => $summary,
-            'ledger' => $receivables
+            'ledger' => $receivables,
         ], 'Accounts Receivable (AR) Ledger retrieved successfully');
     }
 
@@ -311,8 +313,10 @@ class DebtLedgerController extends Controller
         ];
 
         foreach ($receivables as $sale) {
-            $outstanding = (float)$sale->grand_total - (float)$sale->amount_paid;
-            if ($outstanding <= 0) continue;
+            $outstanding = (float) $sale->grand_total - (float) $sale->amount_paid;
+            if ($outstanding <= 0) {
+                continue;
+            }
 
             $date = Carbon::parse($sale->created_at);
             $ageDays = max(0, $date->diffInDays(now()));
@@ -335,11 +339,11 @@ class DebtLedgerController extends Controller
             'total_outstanding_ar' => $totalAging,
             'buckets' => $agingBuckets,
             'percentage' => [
-                'current' => $totalAging > 0 ? round(($agingBuckets['current'] / $totalAging) * 100, 2) . '%' : '0%',
-                'aging_31_60' => $totalAging > 0 ? round(($agingBuckets['aging_31_60'] / $totalAging) * 100, 2) . '%' : '0%',
-                'aging_61_90' => $totalAging > 0 ? round(($agingBuckets['aging_61_90'] / $totalAging) * 100, 2) . '%' : '0%',
-                'over_90' => $totalAging > 0 ? round(($agingBuckets['over_90'] / $totalAging) * 100, 2) . '%' : '0%',
-            ]
+                'current' => $totalAging > 0 ? round(($agingBuckets['current'] / $totalAging) * 100, 2).'%' : '0%',
+                'aging_31_60' => $totalAging > 0 ? round(($agingBuckets['aging_31_60'] / $totalAging) * 100, 2).'%' : '0%',
+                'aging_61_90' => $totalAging > 0 ? round(($agingBuckets['aging_61_90'] / $totalAging) * 100, 2).'%' : '0%',
+                'over_90' => $totalAging > 0 ? round(($agingBuckets['over_90'] / $totalAging) * 100, 2).'%' : '0%',
+            ],
         ];
 
         return $this->successResponse($report, 'Accounts Receivable (AR) Aging Report generated successfully');
@@ -359,27 +363,27 @@ class DebtLedgerController extends Controller
         ]);
 
         $saleId = $request->input('sale_id');
-        $paymentAmount = (float)$request->input('payment_amount');
+        $paymentAmount = (float) $request->input('payment_amount');
         $bankAccountCode = $request->input('bank_account_code');
         $notes = $request->input('notes') ?? 'Penerimaan Piutang Pelanggan';
 
         $result = DB::transaction(function () use ($saleId, $paymentAmount, $bankAccountCode, $notes) {
             $sale = Sale::findOrFail($saleId);
-            $grandTotal = (float)$sale->grand_total;
-            $currentPaid = (float)$sale->amount_paid;
+            $grandTotal = (float) $sale->grand_total;
+            $currentPaid = (float) $sale->amount_paid;
             $outstanding = max(0.0, $grandTotal - $currentPaid);
 
             if ($paymentAmount > $outstanding) {
                 return [
                     'success' => false,
-                    'message' => "Jumlah pelunasan (Rp " . number_format($paymentAmount, 0, ',', '.') . ") melebihi sisa piutang (Rp " . number_format($outstanding, 0, ',', '.') . ")"
+                    'message' => 'Jumlah pelunasan (Rp '.number_format($paymentAmount, 0, ',', '.').') melebihi sisa piutang (Rp '.number_format($outstanding, 0, ',', '.').')',
                 ];
             }
 
             // 1. Update Nominal Terbayar & Status Pembayaran di Penjualan
             $newPaid = $currentPaid + $paymentAmount;
             $sale->amount_paid = $newPaid;
-            
+
             if ($newPaid >= $grandTotal) {
                 $sale->payment_status = 'paid';
             } else {
@@ -393,8 +397,8 @@ class DebtLedgerController extends Controller
             $cashAccount = Account::where('code', $bankAccountCode)->firstOrFail();
             $arAccount = $this->getOrCreateReceivableAccount();
 
-            $journalRef = 'JV-AR-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
-            
+            $journalRef = 'JV-AR-'.now()->format('Ymd').'-'.strtoupper(Str::random(4));
+
             $journal = JournalEntry::create([
                 'reference_no' => $journalRef,
                 'transaction_date' => now()->toDateString(),
@@ -429,7 +433,7 @@ class DebtLedgerController extends Controller
                     'outstanding_receivable' => max(0.0, $grandTotal - $newPaid),
                     'payment_status' => $sale->payment_status,
                     'journal_entry' => $journalRef,
-                ]
+                ],
             ];
         });
 

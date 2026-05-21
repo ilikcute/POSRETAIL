@@ -3,14 +3,11 @@
 namespace App\Http\Controllers\Api\Master;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Master\Product;
-use App\Models\Master\Rack;
 use App\Models\Sales\Promotion;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class PriceTagController extends Controller
 {
@@ -22,6 +19,7 @@ class PriceTagController extends Controller
     public function generate(Request $request): JsonResponse
     {
         $data = $this->getPriceTagData($request);
+
         return $this->successResponse($data, 'Price tags data generated successfully');
     }
 
@@ -63,15 +61,15 @@ class PriceTagController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$activePromo) {
+        if (! $activePromo) {
             $activePromo = Promotion::where('is_active', true)
                 ->where(function ($q) {
                     $q->whereNull('start_date')
-                      ->orWhere('start_date', '<=', now());
+                        ->orWhere('start_date', '<=', now());
                 })
                 ->where(function ($q) {
                     $q->whereNull('end_date')
-                      ->orWhere('end_date', '>=', now());
+                        ->orWhere('end_date', '>=', now());
                 })
                 ->orderBy('id', 'desc')
                 ->first();
@@ -82,7 +80,7 @@ class PriceTagController extends Controller
         foreach ($products as $product) {
             $rack = $product->racks->first();
             $rackCode = $rack ? $rack->code : 'DISPLAY';
-            
+
             $isPromoActive = false;
             $promoPrice = null;
             $promoName = null;
@@ -94,10 +92,10 @@ class PriceTagController extends Controller
             // Jika ada promo aktif
             if ($activePromo) {
                 $promoEndDate = $activePromo->end_date ? $activePromo->end_date->format('d M Y') : 'Selesai';
-                
+
                 // Jika promo adalah diskon global/keranjang belanja (ada belanja minimal)
                 if ($activePromo->min_purchase_amount > 0) {
-                    $globalPromoBanner = "Promo: Potongan s/d " . number_format($activePromo->value, 0, ',', '.') . " (" . $activePromo->code . ")";
+                    $globalPromoBanner = 'Promo: Potongan s/d '.number_format($activePromo->value, 0, ',', '.').' ('.$activePromo->code.')';
                 } else {
                     // Promo Item-Level Langsung (Tidak ada syarat belanja minimum)
                     $isPromoActive = true;
@@ -105,19 +103,19 @@ class PriceTagController extends Controller
                     $promoCode = $activePromo->code;
 
                     if ($activePromo->type === 'percentage') {
-                        $discountVal = (float)$activePromo->value;
+                        $discountVal = (float) $activePromo->value;
                         $promoPrice = $product->price * (1 - ($discountVal / 100));
                         $promoDiscountText = "DISC {$discountVal}%";
                     } else {
-                        $discountVal = (float)$activePromo->value;
+                        $discountVal = (float) $activePromo->value;
                         $promoPrice = max(0, $product->price - $discountVal);
-                        $promoDiscountText = "HEBAT Rp " . number_format($discountVal, 0, ',', '.');
+                        $promoDiscountText = 'HEBAT Rp '.number_format($discountVal, 0, ',', '.');
                     }
                 }
             }
 
             // Jika tidak ada promo item khusus, tapi ada promo grand opening, kita buat Chitato diskon 20% sebagai visual demonstrasi!
-            if (!$isPromoActive && $activePromo && $activePromo->code === 'GRANDOPENING26') {
+            if (! $isPromoActive && $activePromo && $activePromo->code === 'GRANDOPENING26') {
                 $isPromoActive = true;
                 $promoName = $activePromo->name;
                 $promoCode = $activePromo->code;
@@ -134,11 +132,11 @@ class PriceTagController extends Controller
                 'category_name' => $product->category->name ?? 'Retail',
                 'rack_code' => $rackCode,
                 'unit_name' => $product->unit->name ?? 'pcs',
-                'normal_price' => (float)$product->price,
+                'normal_price' => (float) $product->price,
                 'is_promo_active' => $isPromoActive,
                 'promo_name' => $promoName,
                 'promo_code' => $promoCode,
-                'promo_price' => is_null($promoPrice) ? null : (float)$promoPrice,
+                'promo_price' => is_null($promoPrice) ? null : (float) $promoPrice,
                 'promo_discount_text' => $promoDiscountText,
                 'promo_end_date' => $promoEndDate,
                 'global_promo_banner' => $globalPromoBanner,

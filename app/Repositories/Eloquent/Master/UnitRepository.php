@@ -2,10 +2,9 @@
 
 namespace App\Repositories\Eloquent\Master;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Master\Unit;
 use App\Repositories\Contracts\Master\UnitRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 
 class UnitRepository extends BaseRepository implements UnitRepositoryInterface
 {

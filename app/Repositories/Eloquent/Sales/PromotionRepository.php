@@ -2,10 +2,9 @@
 
 namespace App\Repositories\Eloquent\Sales;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Sales\Promotion;
 use App\Repositories\Contracts\Sales\PromotionRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 
 class PromotionRepository extends BaseRepository implements PromotionRepositoryInterface
 {

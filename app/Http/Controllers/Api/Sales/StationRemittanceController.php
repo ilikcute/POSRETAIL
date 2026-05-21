@@ -3,26 +3,25 @@
 namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Sales\SubmitRemittanceRequest;
-use App\Models\Sales\Shift;
-use App\Models\Sales\Sale;
 use App\Models\Finance\CashTransaction;
-use App\Models\Finance\JournalItem;
-use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
+use App\Models\Sales\Sale;
+use App\Models\Sales\Shift;
 use App\Repositories\Contracts\Finance\AccountRepositoryInterface;
 use App\Repositories\Contracts\Finance\JournalEntryRepositoryInterface;
+use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class StationRemittanceController extends Controller
 {
     use ApiResponseTrait;
 
     protected ShiftRepositoryInterface $shiftRepo;
+
     protected AccountRepositoryInterface $accountRepo;
+
     protected JournalEntryRepositoryInterface $journalRepo;
 
     public function __construct(
@@ -40,7 +39,7 @@ class StationRemittanceController extends Controller
      */
     protected function calculateShiftExpectedBalances(Shift $shift): array
     {
-        $startingCash = (float)$shift->starting_cash;
+        $startingCash = (float) $shift->starting_cash;
 
         // Total Penjualan Tunai (Cash Sales)
         $cashSales = Sale::where('shift_id', $shift->id)
@@ -76,14 +75,14 @@ class StationRemittanceController extends Controller
 
         return [
             'starting_cash' => $startingCash,
-            'cash_sales' => (float)$cashSales,
-            'qris_sales' => (float)$qrisSales,
-            'card_sales' => (float)$cardSales,
-            'cash_in' => (float)$cashIn,
-            'cash_out' => (float)$cashOut,
+            'cash_sales' => (float) $cashSales,
+            'qris_sales' => (float) $qrisSales,
+            'card_sales' => (float) $cardSales,
+            'cash_in' => (float) $cashIn,
+            'cash_out' => (float) $cashOut,
             'expected_cash' => max(0.0, $expectedCash),
-            'expected_qris' => (float)$qrisSales,
-            'expected_card' => (float)$cardSales,
+            'expected_qris' => (float) $qrisSales,
+            'expected_card' => (float) $cardSales,
         ];
     }
 
@@ -106,16 +105,16 @@ class StationRemittanceController extends Controller
                     'end_time' => $shift->end_time,
                 ],
                 'final_reconciliation' => [
-                    'expected_cash' => (float)$shift->expected_cash,
-                    'actual_cash' => (float)$shift->actual_cash,
-                    'difference_cash' => (float)$shift->difference_cash,
-                    'expected_qris' => (float)$shift->expected_qris,
-                    'actual_qris' => (float)$shift->actual_qris,
-                    'difference_qris' => (float)$shift->difference_qris,
-                    'expected_card' => (float)$shift->expected_card,
-                    'actual_card' => (float)$shift->actual_card,
-                    'difference_card' => (float)$shift->difference_card,
-                ]
+                    'expected_cash' => (float) $shift->expected_cash,
+                    'actual_cash' => (float) $shift->actual_cash,
+                    'difference_cash' => (float) $shift->difference_cash,
+                    'expected_qris' => (float) $shift->expected_qris,
+                    'actual_qris' => (float) $shift->actual_qris,
+                    'difference_qris' => (float) $shift->difference_qris,
+                    'expected_card' => (float) $shift->expected_card,
+                    'actual_card' => (float) $shift->actual_card,
+                    'difference_card' => (float) $shift->difference_card,
+                ],
             ], 'This shift is already closed');
         }
 
@@ -129,7 +128,7 @@ class StationRemittanceController extends Controller
                 'status' => 'OPEN',
                 'start_time' => $shift->start_time,
             ],
-            'expected_balances' => $expected
+            'expected_balances' => $expected,
         ];
 
         return $this->successResponse($response, 'Active shift summary for reconciliation retrieved successfully');
@@ -142,9 +141,9 @@ class StationRemittanceController extends Controller
     public function submitRemittance(SubmitRemittanceRequest $request): JsonResponse
     {
         $shiftId = $request->input('shift_id');
-        $actualCash = (float)$request->input('actual_cash');
-        $actualQris = (float)$request->input('actual_qris');
-        $actualCard = (float)$request->input('actual_card');
+        $actualCash = (float) $request->input('actual_cash');
+        $actualQris = (float) $request->input('actual_qris');
+        $actualCard = (float) $request->input('actual_card');
         $notes = $request->input('notes') ?? 'Setoran Tutup Kasir Multi-Station';
 
         $shift = $this->shiftRepo->findOrFail($shiftId);
@@ -154,7 +153,7 @@ class StationRemittanceController extends Controller
         }
 
         $result = DB::transaction(function () use ($shift, $actualCash, $actualQris, $actualCard, $notes) {
-            
+
             $expected = $this->calculateShiftExpectedBalances($shift);
 
             // Hitung selisih kas / QRIS / Card
@@ -182,12 +181,12 @@ class StationRemittanceController extends Controller
             $drawerAccount = $this->accountRepo->all()->where('code', '1101')->first();
             $safeAccount = $this->accountRepo->all()->where('code', '1102')->first();
 
-            if (!$drawerAccount || !$safeAccount) {
-                throw new \Exception("Akun perkiraan kas tidak dikonfigurasi dengan benar.");
+            if (! $drawerAccount || ! $safeAccount) {
+                throw new \Exception('Akun perkiraan kas tidak dikonfigurasi dengan benar.');
             }
 
             $shortageAccount = $this->accountRepo->all()->where('code', '5999')->first();
-            if (!$shortageAccount) {
+            if (! $shortageAccount) {
                 $shortageAccount = $this->accountRepo->create([
                     'code' => '5999',
                     'name' => 'Beban Selisih Kurang Kas Kasir',
@@ -197,7 +196,7 @@ class StationRemittanceController extends Controller
             }
 
             $overageAccount = $this->accountRepo->all()->where('code', '6199')->first();
-            if (!$overageAccount) {
+            if (! $overageAccount) {
                 $overageAccount = $this->accountRepo->create([
                     'code' => '6199',
                     'name' => 'Pendapatan Selisih Lebih Kas Kasir',
@@ -216,7 +215,7 @@ class StationRemittanceController extends Controller
                     'account_id' => $drawerAccount->id,
                     'debit' => 0.0,
                     'credit' => $expected['expected_cash'],
-                ]
+                ],
             ];
 
             if ($diffCash < 0) {
@@ -235,8 +234,8 @@ class StationRemittanceController extends Controller
 
             $journal = $this->journalRepo->create([
                 'transaction_date' => now()->toDateString(),
-                'description' => "Rekonsiliasi Tutup Kasir | Stasiun: {$shift->station->name} | Selisih Kas: Rp " . number_format($diffCash, 0, ',', '.'),
-                'items' => $journalItems
+                'description' => "Rekonsiliasi Tutup Kasir | Stasiun: {$shift->station->name} | Selisih Kas: Rp ".number_format($diffCash, 0, ',', '.'),
+                'items' => $journalItems,
             ]);
 
             return [

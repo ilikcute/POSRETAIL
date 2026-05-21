@@ -2,10 +2,9 @@
 
 namespace App\Repositories\Eloquent\Master;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Master\Category;
 use App\Repositories\Contracts\Master\CategoryRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 
 class CategoryRepository extends BaseRepository implements CategoryRepositoryInterface
 {

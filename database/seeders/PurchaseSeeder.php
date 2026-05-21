@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\Master\Product;
 use App\Models\Master\Store;
 use App\Models\Master\Supplier;
 use App\Models\Master\Warehouse;
-use App\Models\Master\Product;
 use App\Repositories\Contracts\Purchase\PurchaseRepositoryInterface;
+use Illuminate\Database\Seeder;
 
 class PurchaseSeeder extends Seeder
 {
@@ -34,7 +34,7 @@ class PurchaseSeeder extends Seeder
                         'product_id' => $product->id,
                         'qty' => 10,
                         'unit_cost' => $product->cost_price,
-                    ]
+                    ],
                 ],
                 'notes' => 'Rencana pembelian awal bulan (PO)',
             ]);
@@ -53,7 +53,7 @@ class PurchaseSeeder extends Seeder
                         'product_id' => $product->id,
                         'qty' => 50, // Tambah stok 50 item
                         'unit_cost' => $product->cost_price,
-                    ]
+                    ],
                 ],
                 'notes' => 'Pembelian persediaan barang masuk bulanan',
             ]);

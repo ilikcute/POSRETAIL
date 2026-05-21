@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    protected $model = \App\Models\Auth\User::class;
+    protected $model = User::class;
 
     /**
      * The current password being used by the factory.

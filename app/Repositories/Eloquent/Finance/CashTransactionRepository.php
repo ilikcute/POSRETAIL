@@ -2,12 +2,11 @@
 
 namespace App\Repositories\Eloquent\Finance;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Finance\CashTransaction;
 use App\Models\Finance\Account;
+use App\Models\Finance\CashTransaction;
 use App\Models\Finance\JournalEntry;
 use App\Repositories\Contracts\Finance\CashTransactionRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -37,7 +36,7 @@ class CashTransactionRepository extends BaseRepository implements CashTransactio
         $otherRevenueAccount = Account::where('code', '4201')->first();
         $electricityAccount = Account::where('code', '5201')->first();
 
-        if (!$cashAccount || !$bankAccount || !$otherRevenueAccount || !$electricityAccount) {
+        if (! $cashAccount || ! $bankAccount || ! $otherRevenueAccount || ! $electricityAccount) {
             return;
         }
 
@@ -56,9 +55,9 @@ class CashTransactionRepository extends BaseRepository implements CashTransactio
         }
 
         $entry = JournalEntry::create([
-            'reference_no' => 'JV-CASH-' . str_pad($transaction->id, 6, '0', STR_PAD_LEFT),
+            'reference_no' => 'JV-CASH-'.str_pad($transaction->id, 6, '0', STR_PAD_LEFT),
             'transaction_date' => now()->format('Y-m-d'),
-            'description' => 'Jurnal Penyesuaian Kas Laci (POS Petty Cash) - Kategori: ' . $transaction->category . ' | Ket: ' . $transaction->description,
+            'description' => 'Jurnal Penyesuaian Kas Laci (POS Petty Cash) - Kategori: '.$transaction->category.' | Ket: '.$transaction->description,
             'created_by' => auth()->id() ?? 1,
         ]);
 

@@ -16,7 +16,7 @@ class UpdateAccountRequest extends FormRequest
         $id = $this->route('account');
 
         return [
-            'code' => 'sometimes|required|string|max:50|unique:accounts,code,' . $id,
+            'code' => 'sometimes|required|string|max:50|unique:accounts,code,'.$id,
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|in:asset,liability,equity,revenue,expense',
             'balance' => 'nullable|numeric',

@@ -20,10 +20,10 @@ class StoreSaleRequest extends FormRequest
             'warehouse_id' => 'required|exists:warehouses,id',
             'customer_id' => 'nullable|exists:customers,id',
             'promotion_id' => 'nullable|exists:promotions,id',
-            
+
             'status' => 'required|in:pending,completed,void',
             'payment_method' => 'nullable|string|max:50',
-            
+
             'discount_amount' => 'nullable|numeric|min:0',
             'amount_paid' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',

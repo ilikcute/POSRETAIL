@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('reference_no')->unique(); // e.g., JV-202605-0001
             $table->date('transaction_date');
-            
+
             $table->text('description')->nullable();
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->timestamps();

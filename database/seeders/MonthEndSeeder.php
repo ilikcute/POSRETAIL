@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Finance\MonthEnd;
 use App\Models\Master\Store;
+use Illuminate\Database\Seeder;
 
 class MonthEndSeeder extends Seeder
 {

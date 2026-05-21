@@ -5,8 +5,6 @@ namespace App\Models\Finance;
 use App\Models\Auth\User;
 use App\Models\Master\Store;
 use App\Models\Sales\Shift;
-
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

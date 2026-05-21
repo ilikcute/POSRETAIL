@@ -12,13 +12,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('store_id')->constrained('stores')->restrictOnDelete();
             $table->date('close_date')->unique();
-            
+
             $table->decimal('total_sales', 15, 2)->default(0);
             $table->decimal('total_purchases', 15, 2)->default(0);
             $table->decimal('total_cash_sales', 15, 2)->default(0);
             $table->decimal('total_non_cash_sales', 15, 2)->default(0);
             $table->decimal('total_shift_difference', 15, 2)->default(0);
-            
+
             $table->foreignId('closed_by')->constrained('users')->restrictOnDelete();
             $table->enum('status', ['completed', 'verified'])->default('completed');
             $table->text('notes')->nullable();

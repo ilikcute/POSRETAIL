@@ -3,8 +3,6 @@
 namespace App\Models\Master;
 
 use App\Models\Inventory\ProductStock;
-
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

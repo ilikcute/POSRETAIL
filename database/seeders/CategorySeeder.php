@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Master\Category;
+use Illuminate\Database\Seeder;
 
 class CategorySeeder extends Seeder
 {
@@ -14,13 +14,13 @@ class CategorySeeder extends Seeder
             'Minuman Dingin',
             'Kebutuhan Sehari-hari',
             'Peralatan Mandi',
-            'Sembako'
+            'Sembako',
         ];
 
         foreach ($categories as $category) {
             Category::create([
                 'name' => $category,
-                'description' => 'Kategori produk ' . strtolower($category),
+                'description' => 'Kategori produk '.strtolower($category),
                 'is_active' => true,
             ]);
         }

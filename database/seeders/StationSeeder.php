@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Master\Station;
+use Illuminate\Database\Seeder;
 
 class StationSeeder extends Seeder
 {

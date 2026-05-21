@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import api from '../../../services/api'
 import { useToast } from 'vue-toastification'
 
@@ -152,6 +152,52 @@ const filteredCategories = computed(() => {
     category.name.toLowerCase().includes(query) || 
     (category.description && category.description.toLowerCase().includes(query))
   )
+})
+
+// Pagination States
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// Reset to first page when search query changes
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
+// Paginated categories computed property
+const paginatedCategories = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value
+  const endIndex = startIndex + pageSize.value
+  return filteredCategories.value.slice(startIndex, endIndex)
+})
+
+// Total pages computed property
+const totalPages = computed(() => {
+  return Math.ceil(filteredCategories.value.length / pageSize.value) || 1
+})
+
+// Keep currentPage within bounds if list shrinks (e.g., after deletions)
+watch(totalPages, (newVal) => {
+  if (currentPage.value > newVal) {
+    currentPage.value = newVal
+  }
+})
+
+// Go to page helper
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+// Display ranges
+const startRange = computed(() => {
+  if (filteredCategories.value.length === 0) return 0
+  return (currentPage.value - 1) * pageSize.value + 1
+})
+
+const endRange = computed(() => {
+  const calculatedEnd = currentPage.value * pageSize.value
+  return Math.min(calculatedEnd, filteredCategories.value.length)
 })
 
 onMounted(() => {
@@ -308,7 +354,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
-              <tr v-for="category in filteredCategories" :key="category.id" class="hover:bg-gray-50/50 transition-colors">
+              <tr v-for="category in paginatedCategories" :key="category.id" class="hover:bg-gray-50/50 transition-colors">
                 <!-- Icon/Avatar column -->
                 <td class="py-3">
                   <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-bold text-sm uppercase flex items-center justify-center">
@@ -376,6 +422,104 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div v-if="filteredCategories.length > 0" class="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <!-- Left side: Range info and page size selector -->
+          <div class="flex items-center gap-3 text-xs text-gray-500">
+            <span>Showing {{ startRange }} to {{ endRange }} of {{ filteredCategories.length }} entries</span>
+            <div class="flex items-center gap-1.5 ml-2 border-l border-gray-200 pl-3">
+              <label class="font-medium text-gray-400">Show:</label>
+              <select 
+                v-model="pageSize" 
+                @change="currentPage = 1"
+                class="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+              >
+                <option :value="5">5</option>
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Right side: Page buttons -->
+          <div class="flex items-center gap-1">
+            <!-- First Page -->
+            <button 
+              @click="goToPage(1)" 
+              :disabled="currentPage === 1"
+              type="button"
+              class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-emerald-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 transition-all cursor-pointer disabled:cursor-not-allowed"
+              title="First Page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m18.75 5.25-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5" />
+              </svg>
+            </button>
+
+            <!-- Previous Page -->
+            <button 
+              @click="goToPage(currentPage - 1)" 
+              :disabled="currentPage === 1"
+              type="button"
+              class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-emerald-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 transition-all cursor-pointer disabled:cursor-not-allowed"
+              title="Previous Page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+
+            <!-- Page numbers -->
+            <template v-for="page in totalPages" :key="page">
+              <!-- Show page button if it is close to currentPage to avoid long horizontal lists -->
+              <button 
+                v-if="Math.abs(page - currentPage) <= 1 || page === 1 || page === totalPages"
+                @click="goToPage(page)"
+                type="button"
+                class="w-8 h-8 rounded-lg border text-xs font-bold transition-all cursor-pointer"
+                :class="currentPage === page 
+                  ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-100 hover:bg-emerald-600' 
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-emerald-600'"
+              >
+                {{ page }}
+              </button>
+              <span 
+                v-else-if="(page === 2 && currentPage > 3) || (page === totalPages - 1 && currentPage < totalPages - 2)"
+                class="w-8 h-8 flex items-center justify-center text-gray-400 text-xs font-bold"
+              >
+                ...
+              </span>
+            </template>
+
+            <!-- Next Page -->
+            <button 
+              @click="goToPage(currentPage + 1)" 
+              :disabled="currentPage === totalPages"
+              type="button"
+              class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-emerald-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 transition-all cursor-pointer disabled:cursor-not-allowed"
+              title="Next Page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+
+            <!-- Last Page -->
+            <button 
+              @click="goToPage(totalPages)" 
+              :disabled="currentPage === totalPages"
+              type="button"
+              class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-emerald-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 transition-all cursor-pointer disabled:cursor-not-allowed"
+              title="Last Page"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m5.25 5.25 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

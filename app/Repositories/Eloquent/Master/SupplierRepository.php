@@ -2,10 +2,9 @@
 
 namespace App\Repositories\Eloquent\Master;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Master\Supplier;
 use App\Repositories\Contracts\Master\SupplierRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 
 class SupplierRepository extends BaseRepository implements SupplierRepositoryInterface
 {

@@ -2,14 +2,15 @@
 
 namespace Database\Factories\Master;
 
+use App\Models\Master\Station;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Master\Station>
+ * @extends Factory<Station>
  */
 class StationFactory extends Factory
 {
-    protected $model = \App\Models\Master\Station::class;
+    protected $model = Station::class;
 
     /**
      * Define the model's default state.
@@ -19,9 +20,9 @@ class StationFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => 'Kasir ' . $this->faker->unique()->numberBetween(1, 10),
+            'name' => 'Kasir '.$this->faker->unique()->numberBetween(1, 10),
             'ip_address' => $this->faker->localIpv4(),
-            'location' => 'Lantai ' . $this->faker->numberBetween(1, 3),
+            'location' => 'Lantai '.$this->faker->numberBetween(1, 3),
             'is_active' => true,
         ];
     }

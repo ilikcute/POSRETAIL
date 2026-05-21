@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Api\Inventory;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Master\Product;
+use App\Models\Master\Store;
 use App\Models\Master\Supplier;
+use App\Models\Master\Warehouse;
 use App\Models\Purchase\Purchase;
 use App\Models\Purchase\PurchaseItem;
-use App\Models\Master\Warehouse;
-use App\Models\Master\Store;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,7 +43,7 @@ class AutoReplenishmentController extends Controller
 
             // Cek apakah stok di bawah atau sama dengan reorder point
             if ($currentStock <= $product->reorder_point) {
-                
+
                 // 1. CARI LAST SUPPLIER LOOKUP (AI Smart Sourcing!)
                 $lastPurchaseItem = PurchaseItem::where('product_id', $product->id)
                     ->whereHas('purchase', function ($q) {
@@ -61,18 +60,18 @@ class AutoReplenishmentController extends Controller
                     $supplier = Supplier::first(); // Fallback ke supplier pertama jika belum pernah beli
                 }
 
-                if (!$supplier) {
+                if (! $supplier) {
                     continue; // Skip jika tidak ada supplier sama sekali di database
                 }
 
                 // 2. HITUNG TARGET KUANTITAS REPLENISHMENT
                 // Ambil kapasitas display rak maksimum dari planogram
-                $maxRackCapacity = $product->racks->sum(function($r) {
+                $maxRackCapacity = $product->racks->sum(function ($r) {
                     return $r->pivot->max_capacity ?? 0;
                 });
 
-                $targetStock = $maxRackCapacity > 0 ? $maxRackCapacity : max(50.0, (float)$product->safety_stock * 3);
-                $suggestedQty = (float)max(0, $targetStock - $currentStock);
+                $targetStock = $maxRackCapacity > 0 ? $maxRackCapacity : max(50.0, (float) $product->safety_stock * 3);
+                $suggestedQty = (float) max(0, $targetStock - $currentStock);
 
                 // Jika suggested qty kurang dari 5, genapkan ke kelipatan minimum (misal 10)
                 if ($suggestedQty > 0 && $suggestedQty < 10) {
@@ -86,17 +85,17 @@ class AutoReplenishmentController extends Controller
                         'name' => $product->name,
                         'category' => $product->category->name ?? 'Retail',
                         'unit' => $product->unit->name ?? 'pcs',
-                        'current_stock' => (float)$currentStock,
-                        'reorder_point' => (float)$product->reorder_point,
+                        'current_stock' => (float) $currentStock,
+                        'reorder_point' => (float) $product->reorder_point,
                         'max_rack_capacity' => $maxRackCapacity,
                         'suggested_qty' => $suggestedQty,
-                        'cost_price' => (float)$product->cost_price,
-                        'estimated_subtotal' => $suggestedQty * (float)$product->cost_price,
+                        'cost_price' => (float) $product->cost_price,
+                        'estimated_subtotal' => $suggestedQty * (float) $product->cost_price,
                         'supplier' => [
                             'id' => $supplier->id,
                             'name' => $supplier->name,
                             'code' => $supplier->code,
-                        ]
+                        ],
                     ]);
                 }
             }
@@ -105,8 +104,9 @@ class AutoReplenishmentController extends Controller
         // Kelompokkan saran berdasarkan Supplier untuk representasi draf PO
         $groupedSuggestions = $suggestions->groupBy('supplier.id')->map(function ($items, $supplierId) {
             $firstItem = $items->first();
+
             return [
-                'supplier_id' => (int)$supplierId,
+                'supplier_id' => (int) $supplierId,
                 'supplier_name' => $firstItem['supplier']['name'],
                 'supplier_code' => $firstItem['supplier']['code'],
                 'total_items_to_order' => $items->count(),
@@ -114,22 +114,22 @@ class AutoReplenishmentController extends Controller
                 'estimated_grand_total' => $items->sum('estimated_subtotal'),
                 'items' => $items->map(function ($item) {
                     return collect($item)->except('supplier')->toArray();
-                })->values()
+                })->values(),
             ];
         })->values();
 
         $response = [
             'metadata' => [
                 'generated_at' => now()->toIso8601String(),
-                'target_warehouse_id' => $warehouseId ? (int)$warehouseId : Warehouse::first()->id,
-                'store_id' => (int)$storeId,
+                'target_warehouse_id' => $warehouseId ? (int) $warehouseId : Warehouse::first()->id,
+                'store_id' => (int) $storeId,
             ],
             'summary' => [
                 'total_suppliers_involved' => $groupedSuggestions->count(),
                 'total_unique_products_understocked' => $suggestions->count(),
                 'estimated_total_investment' => $suggestions->sum('estimated_subtotal'),
             ],
-            'suggestions_by_supplier' => $groupedSuggestions
+            'suggestions_by_supplier' => $groupedSuggestions,
         ];
 
         return $this->successResponse($response, 'Auto-replenishment suggestions generated successfully');
@@ -160,9 +160,9 @@ class AutoReplenishmentController extends Controller
         DB::transaction(function () use ($request, $storeId, $warehouseId, $userId, &$createdPOs) {
             foreach ($request->input('suppliers') as $supData) {
                 $supplierId = $supData['supplier_id'];
-                
+
                 // Genereate unique PO reference number
-                $refNo = 'PO-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
+                $refNo = 'PO-'.now()->format('Ymd').'-'.strtoupper(Str::random(5));
 
                 $totalItems = 0;
                 $totalAmount = 0.0;
@@ -189,7 +189,7 @@ class AutoReplenishmentController extends Controller
                 // 2. Buat PO Detail Items
                 foreach ($supData['items'] as $itemData) {
                     $subtotal = $itemData['qty'] * $itemData['cost_price'];
-                    
+
                     PurchaseItem::create([
                         'purchase_id' => $purchase->id,
                         'product_id' => $itemData['product_id'],

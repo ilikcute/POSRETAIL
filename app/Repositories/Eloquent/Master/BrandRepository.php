@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Eloquent\Master;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Master\Brand;
 use App\Repositories\Contracts\Master\BrandRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class BrandRepository extends BaseRepository implements BrandRepositoryInterface
@@ -18,7 +18,7 @@ class BrandRepository extends BaseRepository implements BrandRepositoryInterface
 
     public function create(array $attributes): Model
     {
-        if (isset($attributes['logo']) && $attributes['logo'] instanceof \Illuminate\Http\UploadedFile) {
+        if (isset($attributes['logo']) && $attributes['logo'] instanceof UploadedFile) {
             $attributes['logo_path'] = $attributes['logo']->store('brands/logos', 'public');
             unset($attributes['logo']);
         }
@@ -30,7 +30,7 @@ class BrandRepository extends BaseRepository implements BrandRepositoryInterface
     {
         $brand = $this->findOrFail($id);
 
-        if (isset($attributes['logo']) && $attributes['logo'] instanceof \Illuminate\Http\UploadedFile) {
+        if (isset($attributes['logo']) && $attributes['logo'] instanceof UploadedFile) {
             if ($brand->logo_path && Storage::disk('public')->exists($brand->logo_path)) {
                 Storage::disk('public')->delete($brand->logo_path);
             }
@@ -44,7 +44,7 @@ class BrandRepository extends BaseRepository implements BrandRepositoryInterface
     public function delete(int $id): bool
     {
         $brand = $this->findOrFail($id);
-        
+
         if ($brand->logo_path && Storage::disk('public')->exists($brand->logo_path)) {
             Storage::disk('public')->delete($brand->logo_path);
         }

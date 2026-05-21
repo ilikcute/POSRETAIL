@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Finance;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Finance\Account;
+use App\Models\Finance\JournalItem;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,7 +54,7 @@ class FinancialReportController extends Controller
                 'discrepancy' => round($discrepancy, 2),
             ],
             'assets' => [
-                'items' => $assets->map(fn($acc) => [
+                'items' => $assets->map(fn ($acc) => [
                     'code' => $acc->code,
                     'name' => $acc->name,
                     'balance' => $acc->balance,
@@ -62,7 +62,7 @@ class FinancialReportController extends Controller
                 'total' => round($totalAssets, 2),
             ],
             'liabilities' => [
-                'items' => $liabilities->map(fn($acc) => [
+                'items' => $liabilities->map(fn ($acc) => [
                     'code' => $acc->code,
                     'name' => $acc->name,
                     'balance' => $acc->balance,
@@ -70,7 +70,7 @@ class FinancialReportController extends Controller
                 'total' => round($totalLiabilities, 2),
             ],
             'equity' => [
-                'items' => $equityAccounts->map(fn($acc) => [
+                'items' => $equityAccounts->map(fn ($acc) => [
                     'code' => $acc->code,
                     'name' => $acc->name,
                     'balance' => $acc->balance,
@@ -79,14 +79,14 @@ class FinancialReportController extends Controller
                         'code' => '3999',
                         'name' => 'Laba Tahun Berjalan (Net Income)',
                         'balance' => round($currentEarnings, 2),
-                    ]
+                    ],
                 ]),
                 'total' => round($totalEquity, 2),
             ],
             'summary' => [
                 'total_assets' => round($totalAssets, 2),
                 'total_liabilities_and_equity' => round($rightSide, 2),
-            ]
+            ],
         ];
 
         return $this->successResponse($reportData, 'Laporan neraca berhasil dibuat');
@@ -114,7 +114,7 @@ class FinancialReportController extends Controller
                 'currency' => 'IDR',
             ],
             'revenues' => [
-                'items' => $revenues->map(fn($acc) => [
+                'items' => $revenues->map(fn ($acc) => [
                     'code' => $acc->code,
                     'name' => $acc->name,
                     'balance' => $acc->balance,
@@ -122,7 +122,7 @@ class FinancialReportController extends Controller
                 'total' => round($totalRevenue, 2),
             ],
             'expenses' => [
-                'items' => $expenses->map(fn($acc) => [
+                'items' => $expenses->map(fn ($acc) => [
                     'code' => $acc->code,
                     'name' => $acc->name,
                     'balance' => $acc->balance,
@@ -133,7 +133,7 @@ class FinancialReportController extends Controller
                 'total_revenue' => round($totalRevenue, 2),
                 'total_expense' => round($totalExpense, 2),
                 'net_profit' => round($netProfit, 2),
-            ]
+            ],
         ];
 
         return $this->successResponse($reportData, 'Laporan laba rugi berhasil dibuat');
@@ -148,7 +148,7 @@ class FinancialReportController extends Controller
         $cashAccounts = Account::whereIn('code', ['1101', '1102'])->pluck('id')->toArray();
 
         // Ambil semua Journal Items yang menyangkut akun Kas/Bank
-        $cashJournalItems = \App\Models\Finance\JournalItem::whereIn('account_id', $cashAccounts)
+        $cashJournalItems = JournalItem::whereIn('account_id', $cashAccounts)
             ->with(['entry.items.account'])
             ->get();
 
@@ -225,7 +225,7 @@ class FinancialReportController extends Controller
                 'beginning_cash_balance' => round($beginningCash, 2),
                 'net_cash_increase' => round($netCashIncrease, 2),
                 'ending_cash_balance' => round($currentCashBalance, 2),
-            ]
+            ],
         ];
 
         return $this->successResponse($reportData, 'Laporan arus kas berhasil dibuat');

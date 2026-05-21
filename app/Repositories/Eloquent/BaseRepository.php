@@ -3,8 +3,8 @@
 namespace App\Repositories\Eloquent;
 
 use App\Repositories\Contracts\BaseRepositoryInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseRepository implements BaseRepositoryInterface
 {
@@ -39,12 +39,14 @@ abstract class BaseRepository implements BaseRepositoryInterface
     {
         $record = $this->findOrFail($id);
         $record->update($attributes);
+
         return $record->refresh();
     }
 
     public function delete(int $id): bool
     {
         $record = $this->findOrFail($id);
+
         return $record->delete();
     }
 

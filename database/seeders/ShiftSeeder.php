@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Sales\Shift;
 use App\Models\Master\Station;
+use App\Models\Sales\Shift;
+use Illuminate\Database\Seeder;
 
 class ShiftSeeder extends Seeder
 {
@@ -33,7 +33,7 @@ class ShiftSeeder extends Seeder
                 'status' => 'closed',
                 'notes' => 'Shift Pagi Berjalan Lancar dengan penyesuaian Petty Cash',
             ]);
-            
+
             // Shift aktif sekarang
             Shift::create([
                 'user_id' => 1,

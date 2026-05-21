@@ -2,12 +2,10 @@
 
 namespace App\Models\Inventory;
 
-use App\Models\Master\Warehouse;
-use App\Models\Master\Rack;
 use App\Models\Master\Product;
 use App\Models\Master\ProductVariant;
-
-
+use App\Models\Master\Rack;
+use App\Models\Master\Warehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

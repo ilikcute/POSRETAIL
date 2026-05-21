@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Sales\DailyClose;
 use App\Models\Master\Store;
+use App\Models\Sales\DailyClose;
+use Illuminate\Database\Seeder;
 
 class DailyCloseSeeder extends Seeder
 {

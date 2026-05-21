@@ -22,11 +22,11 @@ return new class extends Migration
             $table->string('header_text')->nullable();
             $table->string('footer_text')->nullable();
             $table->json('print_settings')->nullable();
-            
+
             // Kolom foreign key dibuat nullable dulu karena master printernya mungkin belum ada saat toko dibuat
             $table->foreignId('default_printer_id')->nullable();
             $table->foreignId('default_receipt_template_id')->nullable();
-            
+
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
             $table->timestamps();

@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Master\Product;
-use App\Models\Master\Category;
 use App\Models\Master\Brand;
+use App\Models\Master\Category;
+use App\Models\Master\Product;
 use App\Models\Master\Unit;
+use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {

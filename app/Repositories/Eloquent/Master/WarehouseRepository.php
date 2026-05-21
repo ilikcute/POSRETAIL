@@ -2,10 +2,9 @@
 
 namespace App\Repositories\Eloquent\Master;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Master\Warehouse;
 use App\Repositories\Contracts\Master\WarehouseRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 
 class WarehouseRepository extends BaseRepository implements WarehouseRepositoryInterface

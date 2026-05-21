@@ -2,10 +2,9 @@
 
 namespace App\Repositories\Eloquent\Sales;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Sales\SuspendedCart;
 use App\Repositories\Contracts\Sales\SuspendedCartRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 
 class SuspendedCartRepository extends BaseRepository implements SuspendedCartRepositoryInterface

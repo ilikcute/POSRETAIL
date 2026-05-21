@@ -3,8 +3,6 @@
 namespace App\Models\Sales;
 
 use App\Models\Master\Product;
-
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

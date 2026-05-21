@@ -16,7 +16,7 @@ class UpdateWarehouseRequest extends FormRequest
         $id = $this->route('warehouse'); // asumsikan resource ID route
 
         return [
-            'code' => 'sometimes|required|string|max:50|unique:warehouses,code,' . $id,
+            'code' => 'sometimes|required|string|max:50|unique:warehouses,code,'.$id,
             'name' => 'sometimes|required|string|max:255',
             'address' => 'nullable|string',
             'is_main' => 'boolean',

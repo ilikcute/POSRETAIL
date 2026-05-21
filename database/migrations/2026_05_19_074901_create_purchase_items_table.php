@@ -13,13 +13,13 @@ return new class extends Migration
             $table->foreignId('purchase_id')->constrained('purchases')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $table->foreignId('product_variant_id')->nullable()->constrained('product_variants')->restrictOnDelete();
-            
+
             $table->decimal('qty', 15, 2);
             $table->decimal('unit_cost', 15, 2); // Harga modal pada saat pembelian
             $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('tax', 15, 2)->default(0);
             $table->decimal('subtotal', 15, 2);
-            
+
             $table->timestamps();
         });
     }

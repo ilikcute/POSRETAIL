@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Master\Warehouse;
 use App\Models\Master\Product;
+use App\Models\Master\Warehouse;
 use App\Repositories\Contracts\Inventory\StockDisposalRepositoryInterface;
+use Illuminate\Database\Seeder;
 
 class StockDisposalSeeder extends Seeder
 {
@@ -29,8 +29,8 @@ class StockDisposalSeeder extends Seeder
                         'product_variant_id' => null,
                         'qty' => 3,
                         'notes' => 'Penyok & Kedaluwarsa sejak minggu lalu',
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
             // Setujui (Approve) agar terposting ke Akuntansi dan mengurangi stok riil gudang!

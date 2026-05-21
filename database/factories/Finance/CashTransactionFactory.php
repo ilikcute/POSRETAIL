@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class CashTransactionFactory extends Factory
 {
-    protected $model = \App\Models\Finance\CashTransaction::class;
+    protected $model = CashTransaction::class;
 
     /**
      * Define the model's default state.

@@ -2,13 +2,11 @@
 
 namespace App\Repositories\Eloquent\Finance;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Finance\MonthEnd;
-use App\Models\Sales\Sale;
-use App\Models\Sales\SaleItem;
 use App\Models\Purchase\Purchase;
+use App\Models\Sales\Sale;
 use App\Repositories\Contracts\Finance\MonthEndRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 

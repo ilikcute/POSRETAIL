@@ -2,13 +2,13 @@
 
 namespace App\Repositories\Eloquent\Inventory;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Inventory\StockDisposal;
-use App\Models\Inventory\StockDisposalItem;
-use App\Models\Master\Product;
+use App\Models\Finance\Account;
+use App\Models\Finance\JournalEntry;
 use App\Models\Inventory\ProductStock;
+use App\Models\Inventory\StockDisposal;
+use App\Models\Master\Product;
 use App\Repositories\Contracts\Inventory\StockDisposalRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +25,7 @@ class StockDisposalRepository extends BaseRepository implements StockDisposalRep
             $items = $attributes['items'];
             unset($attributes['items']);
 
-            $attributes['reference_no'] = 'SD-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $attributes['reference_no'] = 'SD-'.date('Ymd').'-'.str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             $attributes['created_by'] = auth()->id() ?? 1;
             $attributes['status'] = 'draft';
 
@@ -109,17 +109,17 @@ class StockDisposalRepository extends BaseRepository implements StockDisposalRep
         $totalDisposalCost = $stockDisposal->items->sum('subtotal');
 
         if ($totalDisposalCost > 0) {
-            $inventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first(); // Aset Persediaan
-            $disposalExpenseAccount = \App\Models\Finance\Account::where('code', '5202')->first(); // Beban Kerusakan & Selisih
+            $inventoryAccount = Account::where('code', '1201')->first(); // Aset Persediaan
+            $disposalExpenseAccount = Account::where('code', '5202')->first(); // Beban Kerusakan & Selisih
 
-            if (!$inventoryAccount || !$disposalExpenseAccount) {
+            if (! $inventoryAccount || ! $disposalExpenseAccount) {
                 return;
             }
 
-            $entry = \App\Models\Finance\JournalEntry::create([
-                'reference_no' => 'JV-SD-' . str_pad($stockDisposal->id, 6, '0', STR_PAD_LEFT),
+            $entry = JournalEntry::create([
+                'reference_no' => 'JV-SD-'.str_pad($stockDisposal->id, 6, '0', STR_PAD_LEFT),
                 'transaction_date' => now()->format('Y-m-d'),
-                'description' => 'Pemusnahan Stok Barang (' . $stockDisposal->reason . ') - Ref #' . $stockDisposal->reference_no,
+                'description' => 'Pemusnahan Stok Barang ('.$stockDisposal->reason.') - Ref #'.$stockDisposal->reference_no,
                 'created_by' => auth()->id() ?? 1,
             ]);
 

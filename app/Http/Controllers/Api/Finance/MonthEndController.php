@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Finance;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Finance\StoreMonthEndRequest;
 use App\Repositories\Contracts\Finance\MonthEndRepositoryInterface;
 use App\Traits\ApiResponseTrait;
@@ -23,6 +22,7 @@ class MonthEndController extends Controller
     public function index(): JsonResponse
     {
         $closes = $this->monthEndRepository->all();
+
         return $this->successResponse($closes, 'Month ends retrieved successfully');
     }
 
@@ -30,6 +30,7 @@ class MonthEndController extends Controller
     public function store(StoreMonthEndRequest $request): JsonResponse
     {
         $close = $this->monthEndRepository->create($request->validated());
+
         return $this->successResponse($close, 'Month end completed successfully (EOM Done)', 201);
     }
 
@@ -37,12 +38,14 @@ class MonthEndController extends Controller
     {
         $close = $this->monthEndRepository->findOrFail($id);
         $close->load(['store', 'closedBy']);
+
         return $this->successResponse($close, 'Month end details retrieved successfully');
     }
 
     public function destroy($id): JsonResponse
     {
         $this->monthEndRepository->delete($id);
+
         return $this->successResponse(null, 'Month end report deleted successfully');
     }
 }

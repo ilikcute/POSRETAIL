@@ -2,11 +2,11 @@
 
 namespace App\Repositories\Eloquent\Sales;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Sales\Shift;
+use App\Models\Finance\CashTransaction;
 use App\Models\Sales\Sale;
+use App\Models\Sales\Shift;
 use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 
 class ShiftRepository extends BaseRepository implements ShiftRepositoryInterface
@@ -50,13 +50,13 @@ class ShiftRepository extends BaseRepository implements ShiftRepositoryInterface
             ->sum('grand_total');
 
         // Uang Masuk Lain-lain (misal penjualan kardus bekas)
-        $cashInflows = \App\Models\Finance\CashTransaction::where('shift_id', $shift->id)
+        $cashInflows = CashTransaction::where('shift_id', $shift->id)
             ->where('type', 'in')
             ->where('payment_method', 'cash')
             ->sum('amount');
 
         // Uang Keluar Lain-lain (misal beban bayar listrik/atk)
-        $cashOutflows = \App\Models\Finance\CashTransaction::where('shift_id', $shift->id)
+        $cashOutflows = CashTransaction::where('shift_id', $shift->id)
             ->where('type', 'out')
             ->where('payment_method', 'cash')
             ->sum('amount');
@@ -79,8 +79,8 @@ class ShiftRepository extends BaseRepository implements ShiftRepositoryInterface
             ->where('status', 'completed')
             ->where(function ($query) {
                 $query->where('payment_method', 'card')
-                      ->orWhere('payment_method', 'debit')
-                      ->orWhere('payment_method', 'credit');
+                    ->orWhere('payment_method', 'debit')
+                    ->orWhere('payment_method', 'credit');
             })
             ->sum('grand_total');
 

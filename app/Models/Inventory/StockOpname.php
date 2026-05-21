@@ -4,8 +4,6 @@ namespace App\Models\Inventory;
 
 use App\Models\Auth\User;
 use App\Models\Master\Warehouse;
-
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

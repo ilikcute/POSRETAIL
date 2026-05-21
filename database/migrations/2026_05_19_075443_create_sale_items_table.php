@@ -13,15 +13,15 @@ return new class extends Migration
             $table->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
             $table->foreignId('product_id')->constrained('products')->restrictOnDelete();
             $table->foreignId('product_variant_id')->nullable()->constrained('product_variants')->restrictOnDelete();
-            
+
             $table->decimal('qty', 15, 2);
             $table->decimal('unit_price', 15, 2); // Harga jual saat transaksi terjadi
             $table->decimal('cost_price', 15, 2)->default(0); // Harga modal (HPP) untuk laporan Laba/Rugi
-            
+
             $table->decimal('discount', 15, 2)->default(0);
             $table->decimal('tax', 15, 2)->default(0);
             $table->decimal('subtotal', 15, 2);
-            
+
             $table->timestamps();
         });
     }

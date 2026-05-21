@@ -2,13 +2,14 @@
 
 namespace Database\Factories\Inventory;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Inventory\ProductStock;
 use App\Models\Master\Product;
 use App\Models\Master\Warehouse;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProductStockFactory extends Factory
 {
-    protected $model = \App\Models\Inventory\ProductStock::class;
+    protected $model = ProductStock::class;
 
     public function definition(): array
     {

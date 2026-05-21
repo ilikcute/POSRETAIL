@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Finance\Account;
+use Illuminate\Database\Seeder;
 
 class AccountSeeder extends Seeder
 {

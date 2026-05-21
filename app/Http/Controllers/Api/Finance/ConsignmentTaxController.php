@@ -3,20 +3,19 @@
 namespace App\Http\Controllers\Api\Finance;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\Master\Product;
-use App\Models\Sales\Sale;
-use App\Models\Sales\SaleItem;
-use App\Models\Purchase\Purchase;
 use App\Models\Finance\Account;
 use App\Models\Finance\JournalEntry;
 use App\Models\Finance\JournalItem;
 use App\Models\Master\Supplier;
+use App\Models\Purchase\Purchase;
+use App\Models\Purchase\PurchaseItem;
+use App\Models\Sales\Sale;
+use App\Models\Sales\SaleItem;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ConsignmentTaxController extends Controller
@@ -29,7 +28,7 @@ class ConsignmentTaxController extends Controller
     protected function getOrCreateAccounts()
     {
         $ppnMasukan = Account::where('code', '1104')->first();
-        if (!$ppnMasukan) {
+        if (! $ppnMasukan) {
             $ppnMasukan = Account::create([
                 'code' => '1104',
                 'name' => 'PPN Masukan (VAT Input)',
@@ -40,7 +39,7 @@ class ConsignmentTaxController extends Controller
         }
 
         $ppnKeluaran = Account::where('code', '2201')->first();
-        if (!$ppnKeluaran) {
+        if (! $ppnKeluaran) {
             $ppnKeluaran = Account::create([
                 'code' => '2201',
                 'name' => 'PPN Keluaran (VAT Output)',
@@ -51,7 +50,7 @@ class ConsignmentTaxController extends Controller
         }
 
         $hutangKonsinyasi = Account::where('code', '2102')->first();
-        if (!$hutangKonsinyasi) {
+        if (! $hutangKonsinyasi) {
             $hutangKonsinyasi = Account::create([
                 'code' => '2102',
                 'name' => 'Hutang Konsinyasi (Consignment Payable)',
@@ -89,14 +88,14 @@ class ConsignmentTaxController extends Controller
         $totalVatInput = 0.0;
 
         foreach ($purchases as $purchase) {
-            $totalPurchaseAmount += (float)$purchase->grand_total;
+            $totalPurchaseAmount += (float) $purchase->grand_total;
             // Jika tax_amount bernilai 0 tapi diasumsikan PPN 11% inclusive
-            if ((float)$purchase->tax_amount > 0) {
-                $totalVatInput += (float)$purchase->tax_amount;
+            if ((float) $purchase->tax_amount > 0) {
+                $totalVatInput += (float) $purchase->tax_amount;
             } else {
                 // Rekonstruksi PPN 11% inclusive
-                $net = (float)$purchase->grand_total / 1.11;
-                $totalVatInput += (float)$purchase->grand_total - $net;
+                $net = (float) $purchase->grand_total / 1.11;
+                $totalVatInput += (float) $purchase->grand_total - $net;
             }
         }
 
@@ -109,13 +108,13 @@ class ConsignmentTaxController extends Controller
         $totalVatOutput = 0.0;
 
         foreach ($sales as $sale) {
-            $totalSalesAmount += (float)$sale->grand_total;
-            if ((float)$sale->tax_amount > 0) {
-                $totalVatOutput += (float)$sale->tax_amount;
+            $totalSalesAmount += (float) $sale->grand_total;
+            if ((float) $sale->tax_amount > 0) {
+                $totalVatOutput += (float) $sale->tax_amount;
             } else {
                 // Rekonstruksi PPN 11% inclusive
-                $net = (float)$sale->grand_total / 1.11;
-                $totalVatOutput += (float)$sale->grand_total - $net;
+                $net = (float) $sale->grand_total / 1.11;
+                $totalVatOutput += (float) $sale->grand_total - $net;
             }
         }
 
@@ -137,7 +136,7 @@ class ConsignmentTaxController extends Controller
             'vat_position' => [
                 'net_vat_payable' => $netVatPayable,
                 'status' => $netVatPayable > 0 ? 'UNDERPAYMENT (Harus Bayar ke Negara)' : 'OVERPAYMENT (Kelebihan Bayar/Kompensasi)',
-            ]
+            ],
         ];
 
         return $this->successResponse($report, 'PPN Tax Reconciliation Report generated successfully');
@@ -159,7 +158,7 @@ class ConsignmentTaxController extends Controller
         $items = SaleItem::where('purchase_type', 'consignment')
             ->whereHas('sale', function ($q) use ($startDate, $endDate) {
                 $q->where('status', 'completed')
-                  ->whereBetween('created_at', [$startDate, $endDate]);
+                    ->whereBetween('created_at', [$startDate, $endDate]);
             })
             ->with(['product.brand', 'sale'])
             ->get();
@@ -170,10 +169,12 @@ class ConsignmentTaxController extends Controller
 
         foreach ($items as $item) {
             $product = $item->product;
-            if (!$product) continue;
+            if (! $product) {
+                continue;
+            }
 
             // Dapatkan supplier untuk produk ini (dari history pembelian terakhir)
-            $lastPurchaseItem = \App\Models\Purchase\PurchaseItem::where('product_id', $product->id)
+            $lastPurchaseItem = PurchaseItem::where('product_id', $product->id)
                 ->whereHas('purchase', function ($q) {
                     $q->where('status', 'received');
                 })
@@ -182,15 +183,17 @@ class ConsignmentTaxController extends Controller
                 ->first();
 
             $supplier = $lastPurchaseItem->purchase->supplier ?? Supplier::first();
-            if (!$supplier) continue;
+            if (! $supplier) {
+                continue;
+            }
 
             if ($supplierId && $supplier->id != $supplierId) {
                 continue; // Skip jika filter supplier tidak cocok
             }
 
             // Hitung komisi toko (misal 20% komisi)
-            $commissionRate = (float)($product->consignment_commission_fee > 0 ? $product->consignment_commission_fee : 20.00);
-            $grossTotal = (float)$item->subtotal;
+            $commissionRate = (float) ($product->consignment_commission_fee > 0 ? $product->consignment_commission_fee : 20.00);
+            $grossTotal = (float) $item->subtotal;
             $commissionAmount = $grossTotal * ($commissionRate / 100.0);
             $supplierPayable = $grossTotal - $commissionAmount;
 
@@ -201,16 +204,16 @@ class ConsignmentTaxController extends Controller
                 'product_id' => $product->id,
                 'product_code' => $product->code,
                 'product_name' => $product->name,
-                'qty_sold' => (float)$item->qty,
-                'price' => (float)$item->price,
+                'qty_sold' => (float) $item->qty,
+                'price' => (float) $item->price,
                 'gross_revenue' => $grossTotal,
-                'commission_rate' => $commissionRate . '%',
+                'commission_rate' => $commissionRate.'%',
                 'store_commission' => $commissionAmount,
                 'supplier_payable' => $supplierPayable,
                 'supplier' => [
                     'id' => $supplier->id,
                     'name' => $supplier->name,
-                ]
+                ],
             ]);
         }
 
@@ -223,7 +226,7 @@ class ConsignmentTaxController extends Controller
 
         return $this->successResponse([
             'summary' => $summary,
-            'ledger' => $ledger->values()
+            'ledger' => $ledger->values(),
         ], 'Consignment Sales Ledger retrieved successfully');
     }
 
@@ -242,7 +245,7 @@ class ConsignmentTaxController extends Controller
 
         $supplierId = $request->input('supplier_id');
         $bankAccountCode = $request->input('bank_account_code');
-        $paymentAmount = (float)$request->input('payment_amount');
+        $paymentAmount = (float) $request->input('payment_amount');
         $notes = $request->input('notes') ?? 'Pelunasan Hutang Konsinyasi';
 
         $supplier = Supplier::findOrFail($supplierId);
@@ -255,7 +258,7 @@ class ConsignmentTaxController extends Controller
             $consignmentAccount = $accounts['hutang_konsinyasi'];
             $cashAccount = Account::where('code', $bankAccountCode)->firstOrFail();
 
-            $journalRef = 'JV-CONS-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
+            $journalRef = 'JV-CONS-'.now()->format('Ymd').'-'.strtoupper(Str::random(4));
 
             $journal = JournalEntry::create([
                 'reference_no' => $journalRef,
@@ -290,7 +293,7 @@ class ConsignmentTaxController extends Controller
                     'amount_paid' => $paymentAmount,
                     'bank_account' => $cashAccount->name,
                     'journal_entry' => $journalRef,
-                ]
+                ],
             ];
         });
 

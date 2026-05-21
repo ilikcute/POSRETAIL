@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Purchase;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Purchase\StorePurchaseRequest;
 use App\Http\Requests\Purchase\UpdatePurchaseRequest;
 use App\Repositories\Contracts\Purchase\PurchaseRepositoryInterface;
@@ -24,12 +23,14 @@ class PurchaseController extends Controller
     public function index(): JsonResponse
     {
         $purchases = $this->purchaseRepository->all();
+
         return $this->successResponse($purchases, 'Purchases retrieved successfully');
     }
 
     public function store(StorePurchaseRequest $request): JsonResponse
     {
         $purchase = $this->purchaseRepository->create($request->validated());
+
         return $this->successResponse($purchase, 'Purchase document created successfully', 201);
     }
 
@@ -37,6 +38,7 @@ class PurchaseController extends Controller
     {
         $purchase = $this->purchaseRepository->findOrFail($id);
         $purchase->load(['items.product', 'supplier', 'warehouse', 'creator']);
+
         return $this->successResponse($purchase, 'Purchase document retrieved successfully');
     }
 
@@ -45,12 +47,14 @@ class PurchaseController extends Controller
     public function update(UpdatePurchaseRequest $request, $id): JsonResponse
     {
         $purchase = $this->purchaseRepository->update($id, $request->except('items')); // Menyederhanakan update
+
         return $this->successResponse($purchase, 'Purchase document updated successfully');
     }
 
     public function destroy($id): JsonResponse
     {
         $this->purchaseRepository->delete($id);
+
         return $this->successResponse(null, 'Purchase document deleted successfully');
     }
 }

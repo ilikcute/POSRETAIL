@@ -2,12 +2,12 @@
 
 namespace App\Repositories\Eloquent\Master;
 
-use App\Repositories\Eloquent\BaseRepository;
-
 use App\Models\Master\Store;
 use App\Repositories\Contracts\Master\StoreRepositoryInterface;
-use Illuminate\Support\Facades\Storage;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class StoreRepository extends BaseRepository implements StoreRepositoryInterface
 {
@@ -21,7 +21,7 @@ class StoreRepository extends BaseRepository implements StoreRepositoryInterface
      */
     public function create(array $attributes): Model
     {
-        if (isset($attributes['logo']) && $attributes['logo'] instanceof \Illuminate\Http\UploadedFile) {
+        if (isset($attributes['logo']) && $attributes['logo'] instanceof UploadedFile) {
             $attributes['logo_path'] = $attributes['logo']->store('stores/logos', 'public');
             unset($attributes['logo']);
         }
@@ -36,12 +36,12 @@ class StoreRepository extends BaseRepository implements StoreRepositoryInterface
     {
         $store = $this->findOrFail($id);
 
-        if (isset($attributes['logo']) && $attributes['logo'] instanceof \Illuminate\Http\UploadedFile) {
+        if (isset($attributes['logo']) && $attributes['logo'] instanceof UploadedFile) {
             // Hapus logo lama jika ada
             if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
                 Storage::disk('public')->delete($store->logo_path);
             }
-            
+
             $attributes['logo_path'] = $attributes['logo']->store('stores/logos', 'public');
             unset($attributes['logo']);
         }
@@ -55,7 +55,7 @@ class StoreRepository extends BaseRepository implements StoreRepositoryInterface
     public function delete(int $id): bool
     {
         $store = $this->findOrFail($id);
-        
+
         // Hapus logo jika ada
         if ($store->logo_path && Storage::disk('public')->exists($store->logo_path)) {
             Storage::disk('public')->delete($store->logo_path);

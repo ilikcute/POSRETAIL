@@ -17,6 +17,8 @@ import VoidTransactions from './tabs/VoidTransactions.vue'
 import BrandTab from './tabs/BrandTab.vue'
 import CategoryTab from './tabs/CategoryTab.vue'
 import CustomerTab from './tabs/CustomerTab.vue'
+import UnitTab from './tabs/UnitTab.vue'
+import SupplierTab from './tabs/SupplierTab.vue'
 
 const router = useRouter()
 const toast = useToast()
@@ -41,6 +43,10 @@ const currentTabComponent = computed(() => {
       return CategoryTab
     case 'Customer':
       return CustomerTab
+    case 'Unit':
+      return UnitTab
+    case 'Supplier':
+      return SupplierTab
     default:
       return SalesOverview
   }

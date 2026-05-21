@@ -2,13 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Master\Store;
-use App\Models\Master\Station;
-use App\Models\Master\Warehouse;
+use App\Models\Master\Customer;
 use App\Models\Master\Product;
+use App\Models\Master\Station;
+use App\Models\Master\Store;
+use App\Models\Master\Warehouse;
+use App\Models\Sales\Promotion;
 use App\Models\Sales\Shift;
 use App\Repositories\Contracts\Sales\SaleRepositoryInterface;
+use Illuminate\Database\Seeder;
 
 class SaleSeeder extends Seeder
 {
@@ -19,11 +21,11 @@ class SaleSeeder extends Seeder
         $warehouse = Warehouse::first();
         $product = Product::first();
         $shift = Shift::first();
-        $customer = \App\Models\Master\Customer::first();
+        $customer = Customer::first();
 
         if ($store && $station && $warehouse && $product && $shift) {
             $saleRepository = app(SaleRepositoryInterface::class);
-            $promotion = \App\Models\Sales\Promotion::where('code', 'GRANDOPENING26')->first();
+            $promotion = Promotion::where('code', 'GRANDOPENING26')->first();
 
             $qty = 10;
 
@@ -44,7 +46,7 @@ class SaleSeeder extends Seeder
                         'qty' => $qty,
                         'unit_price' => $product->price,
                         'cost_price' => $product->cost_price,
-                    ]
+                    ],
                 ],
                 'notes' => 'Penjualan pertama kasir dengan Promo Grand Opening',
             ]);

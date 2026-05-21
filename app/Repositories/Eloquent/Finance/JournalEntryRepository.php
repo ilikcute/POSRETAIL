@@ -2,11 +2,10 @@
 
 namespace App\Repositories\Eloquent\Finance;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Finance\JournalEntry;
 use App\Models\Finance\Account;
+use App\Models\Finance\JournalEntry;
 use App\Repositories\Contracts\Finance\JournalEntryRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -36,7 +35,7 @@ class JournalEntryRepository extends BaseRepository implements JournalEntryRepos
             }
 
             // 2. Generate JV Ref
-            $attributes['reference_no'] = 'JV-' . date('Ym') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            $attributes['reference_no'] = 'JV-'.date('Ym').'-'.str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
             $attributes['created_by'] = auth()->id() ?? 1;
 
             $entry = parent::create($attributes);

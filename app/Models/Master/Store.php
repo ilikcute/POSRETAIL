@@ -29,6 +29,6 @@ class Store extends Model
         'is_active' => 'boolean',
         'print_settings' => 'array', // otomatis casting JSON ke array
     ];
-    
+
     // Relasi akan kita tambahkan nanti setelah tabel printer & template dibuat
 }

@@ -12,13 +12,13 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique(); // e.g., 1101, 4101
             $table->string('name');
-            
+
             // Tipe Akun: asset, liability, equity, revenue, expense
             $table->enum('type', ['asset', 'liability', 'equity', 'revenue', 'expense']);
-            
+
             $table->decimal('balance', 15, 2)->default(0); // Saldo saat ini
             $table->text('description')->nullable();
-            
+
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
             $table->timestamps();

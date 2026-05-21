@@ -16,7 +16,7 @@ class UpdatePromotionRequest extends FormRequest
         $id = $this->route('promotion');
 
         return [
-            'code' => 'sometimes|required|string|max:50|unique:promotions,code,' . $id,
+            'code' => 'sometimes|required|string|max:50|unique:promotions,code,'.$id,
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'sometimes|required|in:percentage,fixed_amount',

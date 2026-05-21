@@ -29,7 +29,7 @@ class UpdateStoreRequest extends FormRequest
             'header_text' => 'nullable|string|max:255',
             'footer_text' => 'nullable|string|max:255',
             'print_settings' => 'nullable|array',
-            'default_printer_id' => 'nullable|integer', 
+            'default_printer_id' => 'nullable|integer',
             'default_receipt_template_id' => 'nullable|integer',
             'is_active' => 'boolean',
         ];

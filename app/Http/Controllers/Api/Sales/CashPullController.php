@@ -3,31 +3,32 @@
 namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\Sales\ExecuteCashPullRequest;
-use App\Models\Sales\Shift;
-use App\Models\Sales\Sale;
 use App\Models\Finance\CashTransaction;
-use App\Models\Finance\JournalEntry;
-use App\Models\Finance\JournalItem;
+use App\Models\Master\Store;
+use App\Models\Sales\Sale;
+use App\Models\Sales\Shift;
+use App\Repositories\Contracts\Finance\AccountRepositoryInterface;
+use App\Repositories\Contracts\Finance\CashTransactionRepositoryInterface;
+use App\Repositories\Contracts\Finance\JournalEntryRepositoryInterface;
 use App\Repositories\Contracts\Master\StationRepositoryInterface;
 use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
-use App\Repositories\Contracts\Finance\CashTransactionRepositoryInterface;
-use App\Repositories\Contracts\Finance\AccountRepositoryInterface;
-use App\Repositories\Contracts\Finance\JournalEntryRepositoryInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CashPullController extends Controller
 {
     use ApiResponseTrait;
 
     protected StationRepositoryInterface $stationRepo;
+
     protected ShiftRepositoryInterface $shiftRepo;
+
     protected CashTransactionRepositoryInterface $cashTxRepo;
+
     protected AccountRepositoryInterface $accountRepo;
+
     protected JournalEntryRepositoryInterface $journalRepo;
 
     public function __construct(
@@ -49,7 +50,7 @@ class CashPullController extends Controller
      */
     protected function calculateDrawerCash(Shift $shift): float
     {
-        $startingCash = (float)$shift->starting_cash;
+        $startingCash = (float) $shift->starting_cash;
 
         // Total Penjualan Tunai
         $cashSales = Sale::where('shift_id', $shift->id)
@@ -69,7 +70,7 @@ class CashPullController extends Controller
             ->where('payment_method', 'cash')
             ->sum('amount');
 
-        return max(0.0, $startingCash + (float)$cashSales + (float)$cashIn - (float)$cashOut);
+        return max(0.0, $startingCash + (float) $cashSales + (float) $cashIn - (float) $cashOut);
     }
 
     /**
@@ -79,13 +80,13 @@ class CashPullController extends Controller
     public function checkDrawerLimit(int $stationId): JsonResponse
     {
         $station = $this->stationRepo->findOrFail($stationId);
-        
+
         $shift = Shift::where('station_id', $stationId)
             ->where('status', 'open')
             ->orderBy('id', 'desc')
             ->first();
 
-        if (!$shift) {
+        if (! $shift) {
             return $this->successResponse([
                 'station_id' => $station->id,
                 'station_name' => $station->name,
@@ -96,7 +97,7 @@ class CashPullController extends Controller
         }
 
         $currentCash = $this->calculateDrawerCash($shift);
-        $safetyLimit = (float)$station->drawer_safety_limit;
+        $safetyLimit = (float) $station->drawer_safety_limit;
         $isAlertTriggered = $currentCash >= $safetyLimit;
 
         $suggestedKeepFloat = 500000.00;
@@ -125,7 +126,7 @@ class CashPullController extends Controller
                 'status' => $isAlertTriggered ? 'ALERT_TRIGGERED (Wajib Setor Tengah!)' : 'SAFE (Aman)',
                 'suggested_pull_amount' => $suggestedPull,
                 'remaining_cash_if_pulled' => $isAlertTriggered ? $suggestedKeepFloat : $currentCash,
-            ]
+            ],
         ];
 
         return $this->successResponse($response, 'Cash drawer safety check completed successfully');
@@ -138,7 +139,7 @@ class CashPullController extends Controller
     public function executeCashPull(ExecuteCashPullRequest $request): JsonResponse
     {
         $stationId = $request->input('station_id');
-        $pullAmount = (float)$request->input('pull_amount');
+        $pullAmount = (float) $request->input('pull_amount');
         $supervisorId = $request->input('supervisor_id');
         $notes = $request->input('notes') ?? 'Setor Tengah Kas Laci ke Brankas Utama';
 
@@ -149,7 +150,7 @@ class CashPullController extends Controller
             ->orderBy('id', 'desc')
             ->first();
 
-        if (!$shift) {
+        if (! $shift) {
             return $this->errorResponse('Gagal eksekusi! Tidak ada shift aktif untuk stasiun kasir ini.', 400);
         }
 
@@ -157,43 +158,43 @@ class CashPullController extends Controller
 
         if ($pullAmount > $currentCash) {
             return $this->errorResponse(
-                "Gagal eksekusi! Nominal penarikan (Rp " . number_format($pullAmount, 0, ',', '.') . 
-                ") melebihi jumlah uang fisik kas yang terdeteksi di laci (Rp " . number_format($currentCash, 0, ',', '.') . ").",
+                'Gagal eksekusi! Nominal penarikan (Rp '.number_format($pullAmount, 0, ',', '.').
+                ') melebihi jumlah uang fisik kas yang terdeteksi di laci (Rp '.number_format($currentCash, 0, ',', '.').').',
                 422
             );
         }
 
         $result = DB::transaction(function () use ($shift, $pullAmount, $supervisorId, $notes, $station, $currentCash) {
-            
+
             // 1. Rekam CashTransaction bertipe OUT (menggunakan repository!)
             $cashTx = $this->cashTxRepo->create([
-                'store_id' => \App\Models\Master\Store::first()->id,
+                'store_id' => Store::first()->id,
                 'shift_id' => $shift->id,
                 'type' => 'out',
                 'amount' => $pullAmount,
                 'category' => 'setor_tengah',
                 'payment_method' => 'cash',
-                'description' => "{$notes} [Petugas Otoritas: " . auth()->user()->name . "]",
+                'description' => "{$notes} [Petugas Otoritas: ".auth()->user()->name.']',
                 'created_by' => $supervisorId,
             ]);
 
             // 2. Kurangi Saldo expected_cash pada Shift (menggunakan repository!)
-            $updatedExpectedCash = max(0.0, (float)$shift->expected_cash - $pullAmount);
+            $updatedExpectedCash = max(0.0, (float) $shift->expected_cash - $pullAmount);
             $this->shiftRepo->update($shift->id, [
-                'expected_cash' => $updatedExpectedCash
+                'expected_cash' => $updatedExpectedCash,
             ]);
 
             // 3. POSTING DOUBLE-ENTRY JOURNAL (menggunakan repository!)
             $drawerAccount = $this->accountRepo->all()->where('code', '1101')->first();
             $safeAccount = $this->accountRepo->all()->where('code', '1102')->first();
 
-            if (!$drawerAccount || !$safeAccount) {
-                throw new \Exception("Akun perkiraan kas tidak dikonfigurasi dengan benar.");
+            if (! $drawerAccount || ! $safeAccount) {
+                throw new \Exception('Akun perkiraan kas tidak dikonfigurasi dengan benar.');
             }
 
             $journal = $this->journalRepo->create([
                 'transaction_date' => now()->toDateString(),
-                'description' => "{$notes} | Stasiun: {$station->name} | Otoritas: " . auth()->user()->name,
+                'description' => "{$notes} | Stasiun: {$station->name} | Otoritas: ".auth()->user()->name,
                 'created_by' => $supervisorId,
                 'items' => [
                     [
@@ -205,8 +206,8 @@ class CashPullController extends Controller
                         'account_id' => $drawerAccount->id,
                         'debit' => 0.0,
                         'credit' => $pullAmount,
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
             return [

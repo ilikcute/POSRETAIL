@@ -2,14 +2,15 @@
 
 namespace Database\Factories\Master;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Master\Category;
 use App\Models\Master\Brand;
+use App\Models\Master\Category;
+use App\Models\Master\Product;
 use App\Models\Master\Unit;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProductFactory extends Factory
 {
-    protected $model = \App\Models\Master\Product::class;
+    protected $model = Product::class;
 
     public function definition(): array
     {
@@ -17,7 +18,7 @@ class ProductFactory extends Factory
             'category_id' => Category::inRandomOrder()->first()->id ?? Category::factory(),
             'brand_id' => Brand::inRandomOrder()->first()->id ?? Brand::factory(),
             'unit_id' => Unit::inRandomOrder()->first()->id ?? Unit::factory(),
-            'code' => 'PRD-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'code' => 'PRD-'.$this->faker->unique()->numberBetween(1000, 9999),
             'name' => $this->faker->words(3, true),
             'sku' => strtoupper($this->faker->unique()->lexify('SKU-??????')),
             'barcode' => $this->faker->unique()->ean13(),

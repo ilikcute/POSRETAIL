@@ -17,7 +17,7 @@ class UpdateUnitRequest extends FormRequest
 
         return [
             'name' => 'sometimes|required|string|max:100',
-            'short_name' => 'sometimes|required|string|max:20|unique:units,short_name,' . $id,
+            'short_name' => 'sometimes|required|string|max:20|unique:units,short_name,'.$id,
             'is_active' => 'boolean',
         ];
     }

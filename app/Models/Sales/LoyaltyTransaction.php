@@ -4,8 +4,6 @@ namespace App\Models\Sales;
 
 use App\Models\Auth\User;
 use App\Models\Master\Customer;
-
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

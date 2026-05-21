@@ -3,20 +3,20 @@
 namespace App\Http\Controllers\Api\Sales;
 
 use App\Http\Controllers\Controller;
-
-use App\Http\Requests\Sales\SuspendCartRequest;
 use App\Http\Requests\Sales\CompleteCheckoutRequest;
+use App\Http\Requests\Sales\SuspendCartRequest;
+use App\Models\Finance\JournalEntry;
+use App\Models\Master\Store;
+use App\Models\Master\Warehouse;
+use App\Models\Sales\Shift;
 use App\Models\Sales\SuspendedCart;
 use App\Models\Sales\SuspendedCartItem;
-use App\Models\Sales\SaleItem;
-use App\Models\Sales\Shift;
-use App\Models\Finance\JournalItem;
-use App\Repositories\Contracts\Sales\SuspendedCartRepositoryInterface;
-use App\Repositories\Contracts\Master\StationRepositoryInterface;
-use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
-use App\Repositories\Contracts\Sales\SaleRepositoryInterface;
 use App\Repositories\Contracts\Finance\AccountRepositoryInterface;
 use App\Repositories\Contracts\Finance\JournalEntryRepositoryInterface;
+use App\Repositories\Contracts\Master\StationRepositoryInterface;
+use App\Repositories\Contracts\Sales\SaleRepositoryInterface;
+use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
+use App\Repositories\Contracts\Sales\SuspendedCartRepositoryInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -27,10 +27,15 @@ class SuspendedCartController extends Controller
     use ApiResponseTrait;
 
     protected SuspendedCartRepositoryInterface $suspendedCartRepo;
+
     protected StationRepositoryInterface $stationRepo;
+
     protected ShiftRepositoryInterface $shiftRepo;
+
     protected SaleRepositoryInterface $saleRepo;
+
     protected AccountRepositoryInterface $accountRepo;
+
     protected JournalEntryRepositoryInterface $journalRepo;
 
     public function __construct(
@@ -63,7 +68,7 @@ class SuspendedCartController extends Controller
         $result = DB::transaction(function () use ($stationId, $customerId, $notes, $itemsData) {
             $today = now()->format('Ymd');
             $countToday = SuspendedCart::whereDate('created_at', now()->toDateString())->count();
-            $queueCode = 'Q-' . $today . '-' . str_pad($countToday + 1, 4, '0', STR_PAD_LEFT);
+            $queueCode = 'Q-'.$today.'-'.str_pad($countToday + 1, 4, '0', STR_PAD_LEFT);
 
             $totalItems = 0;
             $totalAmount = 0.0;
@@ -117,6 +122,7 @@ class SuspendedCartController extends Controller
     {
         // Menggunakan custom repository method!
         $carts = $this->suspendedCartRepo->getPendingCartsWithRelations();
+
         return $this->successResponse($carts, 'Pending suspended carts retrieved successfully');
     }
 
@@ -129,7 +135,7 @@ class SuspendedCartController extends Controller
         // Menggunakan custom repository method!
         $cart = $this->suspendedCartRepo->findPendingByQueueCode($queueCode);
 
-        if (!$cart) {
+        if (! $cart) {
             return $this->errorResponse('Keranjang belanja gantung tidak ditemukan atau sudah diselesaikan!', 404);
         }
 
@@ -158,19 +164,19 @@ class SuspendedCartController extends Controller
             ->orderBy('id', 'desc')
             ->first();
 
-        if (!$shift) {
+        if (! $shift) {
             return $this->errorResponse('Gagal checkout! Stasiun kasir target tidak memiliki shift aktif.', 400);
         }
 
-        $result = DB::transaction(function () use ($cart, $shift, $paymentMethod, $bankAccountCode, $targetStationId) {
-            $invoiceNo = 'INV-POS-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
-            $storeId = \App\Models\Master\Store::first()->id;
+        $result = DB::transaction(function () use ($cart, $shift, $paymentMethod, $targetStationId) {
+            $invoiceNo = 'INV-POS-'.now()->format('Ymd').'-'.strtoupper(Str::random(5));
+            $storeId = Store::first()->id;
 
             // 1. BUAT PENJUALAN POS LENGKAP MENGGUNAKAN SALEREPOSITORY
             // Ini otomatis: mengisi detail item, memotong stok gudang, dan memposting Jurnal Ganda Akuntansi (COGS & Sales)!
             $sale = $this->saleRepo->create([
                 'store_id' => $storeId,
-                'warehouse_id' => \App\Models\Master\Warehouse::first()->id,
+                'warehouse_id' => Warehouse::first()->id,
                 'customer_id' => $cart->customer_id,
                 'station_id' => $targetStationId,
                 'shift_id' => $shift->id,
@@ -185,12 +191,12 @@ class SuspendedCartController extends Controller
                         'qty' => $item->qty,
                         'unit_price' => $item->unit_price,
                     ];
-                })->toArray()
+                })->toArray(),
             ]);
 
             // 2. UPDATE STATUS KERANJANG GANTUNG MENJADI SELESAI (menggunakan repository!)
             $this->suspendedCartRepo->update($cart->id, [
-                'status' => 'completed'
+                'status' => 'completed',
             ]);
 
             // 3. UPDATE SHIFT REVENUE & EXPECTED CASH (menggunakan repository!)
@@ -216,7 +222,7 @@ class SuspendedCartController extends Controller
             ]);
 
             // Dapatkan Jurnal Entry terbaru yang otomatis dibuat oleh SaleRepository
-            $latestJournal = \App\Models\Finance\JournalEntry::orderBy('id', 'desc')->first();
+            $latestJournal = JournalEntry::orderBy('id', 'desc')->first();
 
             return [
                 'sale_id' => $sale->id,

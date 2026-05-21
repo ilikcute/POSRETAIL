@@ -2,13 +2,13 @@
 
 namespace App\Repositories\Eloquent\Inventory;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Inventory\StockOpname;
-use App\Models\Inventory\StockOpnameItem;
-use App\Models\Master\Product;
+use App\Models\Finance\Account;
+use App\Models\Finance\JournalEntry;
 use App\Models\Inventory\ProductStock;
+use App\Models\Inventory\StockOpname;
+use App\Models\Master\Product;
 use App\Repositories\Contracts\Inventory\StockOpnameRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +25,7 @@ class StockOpnameRepository extends BaseRepository implements StockOpnameReposit
             $items = $attributes['items'];
             unset($attributes['items']);
 
-            $attributes['reference_no'] = 'SO-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $attributes['reference_no'] = 'SO-'.date('Ymd').'-'.str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             $attributes['created_by'] = auth()->id() ?? 1;
             $attributes['status'] = 'draft';
 
@@ -34,7 +34,7 @@ class StockOpnameRepository extends BaseRepository implements StockOpnameReposit
             $processedItems = [];
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
-                
+
                 // Cari stock terdaftar saat ini di sistem
                 $stock = ProductStock::where('warehouse_id', $stockOpname->warehouse_id)
                     ->where('product_id', $item['product_id'])
@@ -118,18 +118,18 @@ class StockOpnameRepository extends BaseRepository implements StockOpnameReposit
         $totalDiscrepancyValue = $stockOpname->items->sum('discrepancy_value');
 
         if ($totalDiscrepancyValue != 0) {
-            $inventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first(); // Aset Persediaan
-            $adjustmentExpenseAccount = \App\Models\Finance\Account::where('code', '5202')->first(); // Beban Selisih Stock
-            $adjustmentRevenueAccount = \App\Models\Finance\Account::where('code', '4201')->first(); // Pendapatan Lain-lain
+            $inventoryAccount = Account::where('code', '1201')->first(); // Aset Persediaan
+            $adjustmentExpenseAccount = Account::where('code', '5202')->first(); // Beban Selisih Stock
+            $adjustmentRevenueAccount = Account::where('code', '4201')->first(); // Pendapatan Lain-lain
 
-            if (!$inventoryAccount || !$adjustmentExpenseAccount || !$adjustmentRevenueAccount) {
+            if (! $inventoryAccount || ! $adjustmentExpenseAccount || ! $adjustmentRevenueAccount) {
                 return;
             }
 
-            $entry = \App\Models\Finance\JournalEntry::create([
-                'reference_no' => 'JV-SO-' . str_pad($stockOpname->id, 6, '0', STR_PAD_LEFT),
+            $entry = JournalEntry::create([
+                'reference_no' => 'JV-SO-'.str_pad($stockOpname->id, 6, '0', STR_PAD_LEFT),
                 'transaction_date' => now()->format('Y-m-d'),
-                'description' => 'Penyesuaian Akuntansi atas Selisih Stock Opname #' . $stockOpname->reference_no,
+                'description' => 'Penyesuaian Akuntansi atas Selisih Stock Opname #'.$stockOpname->reference_no,
                 'created_by' => auth()->id() ?? 1,
             ]);
 

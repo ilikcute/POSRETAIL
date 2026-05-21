@@ -2,11 +2,12 @@
 
 namespace App\Repositories\Eloquent\Purchase;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Purchase\Purchase;
+use App\Models\Finance\Account;
+use App\Models\Finance\JournalEntry;
 use App\Models\Inventory\ProductStock;
+use App\Models\Purchase\Purchase;
 use App\Repositories\Contracts\Purchase\PurchaseRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -33,7 +34,7 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
                 'return' => 'PR',
                 default => 'DOC',
             };
-            $attributes['reference_no'] = $prefix . '-' . date('Ym') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $attributes['reference_no'] = $prefix.'-'.date('Ym').'-'.str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             $attributes['created_by'] = auth()->id() ?? 1; // Default 1 for seeding/testing
 
             // Calculate Totals
@@ -47,7 +48,7 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
                 $unitCost = $item['unit_cost'];
                 $discount = $item['discount'] ?? 0;
                 $tax = $item['tax'] ?? 0;
-                
+
                 $subtotal = ($qty * $unitCost) - $discount + $tax;
 
                 $totalItems += $qty;
@@ -64,10 +65,10 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
             $attributes['total_items'] = $totalItems;
             $attributes['total_amount'] = $totalAmount;
             $attributes['tax_amount'] = $totalTax;
-            
+
             $discountAmount = $attributes['discount_amount'] ?? 0;
             $shippingCost = $attributes['shipping_cost'] ?? 0;
-            
+
             $attributes['grand_total'] = ($totalAmount + $totalTax + $shippingCost) - $discountAmount;
 
             $purchase = parent::create($attributes);
@@ -102,19 +103,19 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
             } elseif ($operation === 'subtract') {
                 $stock->qty -= $item->qty;
             }
-            
+
             $stock->save();
         }
     }
 
     protected function postPurchaseJournalEntry(Purchase $purchase, string $paymentMethod = 'cash')
     {
-        $cashAccount = \App\Models\Finance\Account::where('code', '1101')->first();
-        $bankAccount = \App\Models\Finance\Account::where('code', '1102')->first();
-        $inventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first();
-        $payableAccount = \App\Models\Finance\Account::where('code', '2101')->first();
+        $cashAccount = Account::where('code', '1101')->first();
+        $bankAccount = Account::where('code', '1102')->first();
+        $inventoryAccount = Account::where('code', '1201')->first();
+        $payableAccount = Account::where('code', '2101')->first();
 
-        if (!$cashAccount || !$bankAccount || !$inventoryAccount || !$payableAccount) {
+        if (! $cashAccount || ! $bankAccount || ! $inventoryAccount || ! $payableAccount) {
             return;
         }
 
@@ -126,10 +127,10 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
             $creditAccount = $payableAccount;
         }
 
-        $entry = \App\Models\Finance\JournalEntry::create([
-            'reference_no' => 'JV-PURC-' . str_pad($purchase->id, 6, '0', STR_PAD_LEFT),
+        $entry = JournalEntry::create([
+            'reference_no' => 'JV-PURC-'.str_pad($purchase->id, 6, '0', STR_PAD_LEFT),
             'transaction_date' => now()->format('Y-m-d'),
-            'description' => ($purchase->type === 'purchase' ? 'Jurnal Penerimaan Barang Supplier - Ref #' : 'Jurnal Retur Pembelian Supplier - Ref #') . $purchase->reference_no,
+            'description' => ($purchase->type === 'purchase' ? 'Jurnal Penerimaan Barang Supplier - Ref #' : 'Jurnal Retur Pembelian Supplier - Ref #').$purchase->reference_no,
             'created_by' => auth()->id() ?? 1,
         ]);
 
@@ -149,7 +150,7 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
                 'debit' => 0,
                 'credit' => $purchase->grand_total,
             ]);
-            
+
             if ($creditAccount->type === 'asset') {
                 $creditAccount->balance -= $purchase->grand_total;
             } else {

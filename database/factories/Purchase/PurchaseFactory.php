@@ -2,14 +2,15 @@
 
 namespace Database\Factories\Purchase;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Master\Store;
 use App\Models\Master\Supplier;
 use App\Models\Master\Warehouse;
+use App\Models\Purchase\Purchase;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PurchaseFactory extends Factory
 {
-    protected $model = \App\Models\Purchase\Purchase::class;
+    protected $model = Purchase::class;
 
     public function definition(): array
     {
@@ -18,7 +19,7 @@ class PurchaseFactory extends Factory
             'supplier_id' => Supplier::inRandomOrder()->first()->id ?? Supplier::factory(),
             'warehouse_id' => Warehouse::inRandomOrder()->first()->id ?? Warehouse::factory(),
             'created_by' => 1,
-            'reference_no' => 'PI-202605-' . str_pad($this->faker->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
+            'reference_no' => 'PI-202605-'.str_pad($this->faker->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'type' => 'purchase',
             'status' => 'received',
             'payment_status' => 'paid',

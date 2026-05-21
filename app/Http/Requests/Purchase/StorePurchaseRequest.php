@@ -20,7 +20,7 @@ class StorePurchaseRequest extends FormRequest
             'type' => 'required|in:order,purchase,return',
             'status' => 'required|in:pending,ordered,received,completed,cancelled',
             'payment_status' => 'required|in:unpaid,partial,paid',
-            
+
             'discount_amount' => 'nullable|numeric|min:0',
             'shipping_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',

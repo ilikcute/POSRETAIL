@@ -12,14 +12,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->restrictOnDelete();
             $table->foreignId('sale_id')->nullable()->constrained('sales')->nullOnDelete();
-            
+
             // Tipe transaksi: earn (mendapat poin), redeem (menukar/belanja), adjust (koreksi/manual)
             $table->enum('type', ['earn', 'redeem', 'adjust']);
-            
+
             $table->integer('points'); // Bisa positif (earn) atau negatif (redeem)
             $table->decimal('amount', 15, 2)->default(0); // Nilai cashback / potongan rupiah
             $table->text('description')->nullable();
-            
+
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });

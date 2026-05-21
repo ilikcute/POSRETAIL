@@ -20,7 +20,7 @@ class UpdatePurchaseRequest extends FormRequest
             'type' => 'sometimes|required|in:order,purchase,return',
             'status' => 'sometimes|required|in:pending,ordered,received,completed,cancelled',
             'payment_status' => 'sometimes|required|in:unpaid,partial,paid',
-            
+
             'discount_amount' => 'nullable|numeric|min:0',
             'shipping_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',

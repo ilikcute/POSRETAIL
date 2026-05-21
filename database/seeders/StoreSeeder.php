@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Master\Store;
+use Illuminate\Database\Seeder;
 
 class StoreSeeder extends Seeder
 {
@@ -14,7 +14,7 @@ class StoreSeeder extends Seeder
     {
         // Mengingat requirement aplikasi ini adalah "Single Tenant, Multi Station",
         // maka idealnya hanya ada 1 Store utama yang terdaftar.
-        
+
         Store::create([
             'name' => 'POS Retail Utama',
             'address' => 'Jl. Jendral Sudirman No. 1, Jakarta Pusat, DKI Jakarta',
@@ -26,12 +26,12 @@ class StoreSeeder extends Seeder
             'print_settings' => [
                 'paper_width' => 80,
                 'print_barcode' => true,
-                'print_qrcode' => false
+                'print_qrcode' => false,
             ],
             'is_active' => true,
         ]);
 
-        // Jika Anda ingin men-generate beberapa data dummy (meski single tenant) 
+        // Jika Anda ingin men-generate beberapa data dummy (meski single tenant)
         // untuk keperluan testing UI, bisa uncomment kode di bawah ini:
         // Store::factory(2)->create();
     }

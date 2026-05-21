@@ -2,11 +2,15 @@
 
 namespace App\Repositories\Eloquent\Sales;
 
-use App\Repositories\Eloquent\BaseRepository;
-
-use App\Models\Sales\Sale;
+use App\Models\Finance\Account;
+use App\Models\Finance\JournalEntry;
 use App\Models\Inventory\ProductStock;
+use App\Models\Master\Customer;
+use App\Models\Sales\LoyaltyTransaction;
+use App\Models\Sales\Promotion;
+use App\Models\Sales\Sale;
 use App\Repositories\Contracts\Sales\SaleRepositoryInterface;
+use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +28,7 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             unset($attributes['items']);
 
             // Auto-generate Invoice Number
-            $attributes['invoice_no'] = 'INV-' . date('Ym') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            $attributes['invoice_no'] = 'INV-'.date('Ym').'-'.str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
             $attributes['created_by'] = auth()->id() ?? 1;
 
             // Calculate Totals
@@ -38,7 +42,7 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
                 $unitPrice = $item['unit_price'];
                 $discount = $item['discount'] ?? 0;
                 $tax = $item['tax'] ?? 0;
-                
+
                 $subtotal = ($qty * $unitPrice) - $discount + $tax;
 
                 $totalItems += $qty;
@@ -55,19 +59,19 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             $attributes['total_items'] = $totalItems;
             $attributes['total_amount'] = $totalAmount;
             $attributes['tax_amount'] = $totalTax;
-            
+
             $discountAmount = $attributes['discount_amount'] ?? 0;
 
             // Logika Loyalty Points (Redeem)
             $pointsRedeemed = $attributes['points_redeemed'] ?? 0;
             $pointsDiscount = 0;
-            if ($pointsRedeemed > 0 && !empty($attributes['customer_id'])) {
-                $customer = \App\Models\Master\Customer::findOrFail($attributes['customer_id']);
+            if ($pointsRedeemed > 0 && ! empty($attributes['customer_id'])) {
+                $customer = Customer::findOrFail($attributes['customer_id']);
                 if ($customer->point_balance < $pointsRedeemed) {
                     throw new \Exception("Customer does not have enough loyalty points. Balance: {$customer->point_balance}");
                 }
                 // 1 poin = Rp 1
-                $pointsDiscount = $pointsRedeemed * 1; 
+                $pointsDiscount = $pointsRedeemed * 1;
                 $attributes['points_discount'] = $pointsDiscount;
             } else {
                 $attributes['points_redeemed'] = 0;
@@ -75,8 +79,8 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             }
 
             // Logika Promosi Otomatis dari Backend
-            if (!empty($attributes['promotion_id'])) {
-                $promotion = \App\Models\Sales\Promotion::where('is_active', true)
+            if (! empty($attributes['promotion_id'])) {
+                $promotion = Promotion::where('is_active', true)
                     ->where(function ($query) {
                         $query->whereNull('start_date')
                             ->orWhere('start_date', '<=', now());
@@ -103,19 +107,19 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
                     }
                 }
             }
-            
+
             $attributes['discount_amount'] = $discountAmount;
-            
+
             $grandTotal = ($totalAmount + $totalTax) - $discountAmount - $pointsDiscount;
             $attributes['grand_total'] = $grandTotal < 0 ? 0 : $grandTotal;
 
             // Hitung poin didapat (Rp 10.000 = 100 poin)
-            if (!empty($attributes['customer_id'])) {
+            if (! empty($attributes['customer_id'])) {
                 $attributes['points_earned'] = floor($attributes['grand_total'] / 10000) * 100;
             } else {
                 $attributes['points_earned'] = 0;
             }
-            
+
             $amountPaid = $attributes['amount_paid'] ?? 0;
             $attributes['change_amount'] = $amountPaid > $attributes['grand_total'] ? ($amountPaid - $attributes['grand_total']) : 0;
 
@@ -170,20 +174,20 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             } elseif ($operation === 'subtract') {
                 $stock->qty -= $item->qty;
             }
-            
+
             $stock->save();
         }
     }
 
     protected function postSaleJournalEntry(Sale $sale)
     {
-        $cashAccount = \App\Models\Finance\Account::where('code', '1101')->first();
-        $bankAccount = \App\Models\Finance\Account::where('code', '1102')->first();
-        $salesAccount = \App\Models\Finance\Account::where('code', '4101')->first();
-        $inventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first();
-        $hppAccount = \App\Models\Finance\Account::where('code', '5101')->first();
+        $cashAccount = Account::where('code', '1101')->first();
+        $bankAccount = Account::where('code', '1102')->first();
+        $salesAccount = Account::where('code', '4101')->first();
+        $inventoryAccount = Account::where('code', '1201')->first();
+        $hppAccount = Account::where('code', '5101')->first();
 
-        if (!$cashAccount || !$bankAccount || !$salesAccount || !$inventoryAccount || !$hppAccount) {
+        if (! $cashAccount || ! $bankAccount || ! $salesAccount || ! $inventoryAccount || ! $hppAccount) {
             return;
         }
 
@@ -193,10 +197,10 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             return $item->qty * $item->cost_price;
         });
 
-        $entry = \App\Models\Finance\JournalEntry::create([
-            'reference_no' => 'JV-SALE-' . str_pad($sale->id, 6, '0', STR_PAD_LEFT),
+        $entry = JournalEntry::create([
+            'reference_no' => 'JV-SALE-'.str_pad($sale->id, 6, '0', STR_PAD_LEFT),
             'transaction_date' => now()->format('Y-m-d'),
-            'description' => 'Jurnal Penjualan Otomatis POS - Nota #' . $sale->invoice_no,
+            'description' => 'Jurnal Penjualan Otomatis POS - Nota #'.$sale->invoice_no,
             'created_by' => auth()->id() ?? 1,
         ]);
 
@@ -241,13 +245,13 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
 
     protected function reverseSaleJournalEntry(Sale $sale)
     {
-        $cashAccount = \App\Models\Finance\Account::where('code', '1101')->first();
-        $bankAccount = \App\Models\Finance\Account::where('code', '1102')->first();
-        $salesAccount = \App\Models\Finance\Account::where('code', '4101')->first();
-        $inventoryAccount = \App\Models\Finance\Account::where('code', '1201')->first();
-        $hppAccount = \App\Models\Finance\Account::where('code', '5101')->first();
+        $cashAccount = Account::where('code', '1101')->first();
+        $bankAccount = Account::where('code', '1102')->first();
+        $salesAccount = Account::where('code', '4101')->first();
+        $inventoryAccount = Account::where('code', '1201')->first();
+        $hppAccount = Account::where('code', '5101')->first();
 
-        if (!$cashAccount || !$bankAccount || !$salesAccount || !$inventoryAccount || !$hppAccount) {
+        if (! $cashAccount || ! $bankAccount || ! $salesAccount || ! $inventoryAccount || ! $hppAccount) {
             return;
         }
 
@@ -257,10 +261,10 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             return $item->qty * $item->cost_price;
         });
 
-        $entry = \App\Models\Finance\JournalEntry::create([
-            'reference_no' => 'JV-REV-SALE-' . str_pad($sale->id, 6, '0', STR_PAD_LEFT),
+        $entry = JournalEntry::create([
+            'reference_no' => 'JV-REV-SALE-'.str_pad($sale->id, 6, '0', STR_PAD_LEFT),
             'transaction_date' => now()->format('Y-m-d'),
-            'description' => 'Jurnal Koreksi / Pembatalan Penjualan POS - Nota #' . $sale->invoice_no,
+            'description' => 'Jurnal Koreksi / Pembatalan Penjualan POS - Nota #'.$sale->invoice_no,
             'created_by' => auth()->id() ?? 1,
         ]);
 
@@ -306,12 +310,12 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
     protected function processLoyaltyPoints(Sale $sale)
     {
         if ($sale->customer_id) {
-            $customer = \App\Models\Master\Customer::findOrFail($sale->customer_id);
+            $customer = Customer::findOrFail($sale->customer_id);
 
             // 1. Catat Poin yang Ditukarkan (Redeem)
             if ($sale->points_redeemed > 0) {
                 $customer->point_balance -= $sale->points_redeemed;
-                \App\Models\Sales\LoyaltyTransaction::create([
+                LoyaltyTransaction::create([
                     'customer_id' => $sale->customer_id,
                     'sale_id' => $sale->id,
                     'type' => 'redeem',
@@ -325,13 +329,13 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             // 2. Catat Poin yang Didapatkan (Earn)
             if ($sale->points_earned > 0) {
                 $customer->point_balance += $sale->points_earned;
-                \App\Models\Sales\LoyaltyTransaction::create([
+                LoyaltyTransaction::create([
                     'customer_id' => $sale->customer_id,
                     'sale_id' => $sale->id,
                     'type' => 'earn',
                     'points' => $sale->points_earned,
                     'amount' => round($sale->points_earned / 100, 2), // Cashback equivalent
-                    'description' => "Akumulasi poin belanja POS - Nota #" . $sale->invoice_no,
+                    'description' => 'Akumulasi poin belanja POS - Nota #'.$sale->invoice_no,
                     'created_by' => auth()->id() ?? 1,
                 ]);
             }
@@ -343,18 +347,18 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
     protected function reverseLoyaltyPoints(Sale $sale)
     {
         if ($sale->customer_id) {
-            $customer = \App\Models\Master\Customer::findOrFail($sale->customer_id);
+            $customer = Customer::findOrFail($sale->customer_id);
 
             // 1. Kembalikan Poin yang Dibelanjakan (Refund ke Customer)
             if ($sale->points_redeemed > 0) {
                 $customer->point_balance += $sale->points_redeemed;
-                \App\Models\Sales\LoyaltyTransaction::create([
+                LoyaltyTransaction::create([
                     'customer_id' => $sale->customer_id,
                     'sale_id' => $sale->id,
                     'type' => 'adjust',
                     'points' => $sale->points_redeemed,
                     'amount' => $sale->points_discount,
-                    'description' => "Pengembalian {$sale->points_redeemed} poin karena Nota #" . $sale->invoice_no . " void",
+                    'description' => "Pengembalian {$sale->points_redeemed} poin karena Nota #".$sale->invoice_no.' void',
                     'created_by' => auth()->id() ?? 1,
                 ]);
             }
@@ -362,18 +366,18 @@ class SaleRepository extends BaseRepository implements SaleRepositoryInterface
             // 2. Cabut Poin yang Didapatkan (Batalkan Poin)
             if ($sale->points_earned > 0) {
                 $customer->point_balance -= $sale->points_earned;
-                
+
                 if ($customer->point_balance < 0) {
                     $customer->point_balance = 0;
                 }
 
-                \App\Models\Sales\LoyaltyTransaction::create([
+                LoyaltyTransaction::create([
                     'customer_id' => $sale->customer_id,
                     'sale_id' => $sale->id,
                     'type' => 'adjust',
                     'points' => -$sale->points_earned,
                     'amount' => round($sale->points_earned / 100, 2),
-                    'description' => "Pencabutan {$sale->points_earned} poin karena Nota #" . $sale->invoice_no . " void",
+                    'description' => "Pencabutan {$sale->points_earned} poin karena Nota #".$sale->invoice_no.' void',
                     'created_by' => auth()->id() ?? 1,
                 ]);
             }

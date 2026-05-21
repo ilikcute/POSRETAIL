@@ -4,8 +4,6 @@ namespace App\Models\Inventory;
 
 use App\Models\Master\Product;
 use App\Models\Master\ProductVariant;
-
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

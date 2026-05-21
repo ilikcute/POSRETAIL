@@ -4,10 +4,8 @@ namespace App\Models\Purchase;
 
 use App\Models\Auth\User;
 use App\Models\Master\Store;
-use App\Models\Master\Warehouse;
 use App\Models\Master\Supplier;
-
-
+use App\Models\Master\Warehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;

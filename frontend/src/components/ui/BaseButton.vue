@@ -19,7 +19,8 @@ defineProps({
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="relative w-full py-3.5 px-5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl hover:from-emerald-500 hover:to-teal-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all duration-200 cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+    class="relative w-full py-3.5 px-5 text-sm font-semibold text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a9e8f]/50 shadow-lg shadow-[#0d3b66]/20 active:scale-[0.98] transition-all duration-200 cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+    style="background: linear-gradient(135deg, #0d3b66 0%, #0e4d6e 40%, #147a83 70%, #1a9e8f 100%);"
   >
     <!-- Loading Spinner -->
     <svg

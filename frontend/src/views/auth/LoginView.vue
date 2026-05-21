@@ -56,13 +56,13 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0B0F19] flex items-center justify-center p-6 relative overflow-hidden font-sans">
-    <!-- Ambient mesh background gradients -->
-    <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="min-h-screen flex items-center justify-center p-6 relative overflow-hidden font-sans" style="background: linear-gradient(135deg, #eaf6f6 0%, #d4efed 30%, #c8e6e3 60%, #b8ddd9 100%);">
+    <!-- Ambient decorative blobs -->
+    <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#1a9e8f]/8 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#0d3b66]/5 rounded-full blur-[120px] pointer-events-none"></div>
     
-    <!-- Cyberpunk grid background lines -->
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.15]"></div>
+    <!-- Subtle grid pattern -->
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#0d3b66_1px,transparent_1px),linear-gradient(to_bottom,#0d3b66_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.03]"></div>
 
     <AuthCard
       title="Login Kasir"
@@ -93,16 +93,16 @@ const handleLogin = async () => {
 
         <!-- Remember Me & Forgot Password link -->
         <div class="flex items-center justify-between pb-4 pt-1">
-          <label class="flex items-center cursor-pointer select-none text-xs text-slate-400 hover:text-slate-300">
+          <label class="flex items-center cursor-pointer select-none text-xs text-gray-500 hover:text-gray-700">
             <input
               type="checkbox"
-              class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/30 focus:ring-2 focus:ring-offset-0 mr-2 cursor-pointer accent-emerald-500"
+              class="w-4 h-4 rounded border-gray-300 bg-gray-50 text-[#1a9e8f] focus:ring-[#1a9e8f]/30 focus:ring-2 focus:ring-offset-0 mr-2 cursor-pointer accent-[#1a9e8f]"
             />
             Ingat Saya
           </label>
           <router-link
             to="/forgot-password"
-            class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200"
+            class="text-xs font-semibold text-[#1a9e8f] hover:text-[#147a83] transition-colors duration-200"
           >
             Lupa Password?
           </router-link>
@@ -114,11 +114,11 @@ const handleLogin = async () => {
         </BaseButton>
 
         <!-- Redirect to Register -->
-        <p class="mt-6 text-center text-xs text-slate-400">
+        <p class="mt-6 text-center text-xs text-gray-500">
           Belum terdaftar? 
           <router-link
             to="/register"
-            class="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 ml-1"
+            class="font-semibold text-[#1a9e8f] hover:text-[#147a83] transition-colors duration-200 ml-1"
           >
             Daftar Akun Baru
           </router-link>

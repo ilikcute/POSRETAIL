@@ -12,15 +12,15 @@ defineProps({
 </script>
 
 <template>
-  <div class="relative w-full max-w-md p-8 md:p-10 bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-3xl shadow-2xl shadow-black/40 transition-all duration-300">
-    <!-- Glowing background accent behind the card -->
-    <div class="absolute -top-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="relative w-full max-w-md p-8 md:p-10 bg-white/95 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl shadow-black/15 transition-all duration-300">
+    <!-- Soft glow accents -->
+    <div class="absolute -top-10 -left-10 w-40 h-40 bg-[#1a9e8f]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-[#0d3b66]/10 rounded-full blur-3xl pointer-events-none"></div>
     
     <!-- Card Header -->
     <div class="relative flex flex-col items-center mb-8">
-      <!-- Premium POS Logo Placeholder -->
-      <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-5 transform hover:rotate-6 transition-transform duration-300">
+      <!-- Logo -->
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shadow-[#0d3b66]/20 mb-5 transform hover:rotate-6 transition-transform duration-300" style="background: linear-gradient(135deg, #0d3b66 0%, #147a83 50%, #1a9e8f 100%);">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -33,10 +33,10 @@ defineProps({
         </svg>
       </div>
       
-      <h2 class="text-2xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
+      <h2 class="text-2xl font-bold text-[#0d3b66]">
         {{ title }}
       </h2>
-      <p v-if="subtitle" class="mt-2 text-sm text-slate-400 text-center">
+      <p v-if="subtitle" class="mt-2 text-sm text-gray-500 text-center">
         {{ subtitle }}
       </p>
     </div>

@@ -84,13 +84,13 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#0B0F19] flex items-center justify-center p-6 relative overflow-hidden font-sans">
-    <!-- Ambient mesh background gradients -->
-    <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="min-h-screen flex items-center justify-center p-6 relative overflow-hidden font-sans" style="background: linear-gradient(135deg, #eaf6f6 0%, #d4efed 30%, #c8e6e3 60%, #b8ddd9 100%);">
+    <!-- Ambient decorative blobs -->
+    <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#1a9e8f]/8 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#0d3b66]/5 rounded-full blur-[120px] pointer-events-none"></div>
     
-    <!-- Cyberpunk grid background lines -->
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.15]"></div>
+    <!-- Subtle grid pattern -->
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#0d3b66_1px,transparent_1px),linear-gradient(to_bottom,#0d3b66_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-[0.03]"></div>
 
     <AuthCard
       title="Reset Password"
@@ -98,7 +98,7 @@ const handleSubmit = async () => {
     >
       <!-- Success State -->
       <div v-if="isSubmitted" class="text-center space-y-6">
-        <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+        <div class="w-16 h-16 bg-[#1a9e8f]/10 border border-[#1a9e8f]/20 text-[#1a9e8f] rounded-full flex items-center justify-center mx-auto">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -111,13 +111,13 @@ const handleSubmit = async () => {
           </svg>
         </div>
         
-        <p class="text-sm text-slate-300 leading-relaxed">
+        <p class="text-sm text-gray-600 leading-relaxed">
           Atur ulang kata sandi berhasil. Anda akan dialihkan ke halaman login secara otomatis dalam beberapa detik.
         </p>
 
         <router-link
           to="/login"
-          class="inline-block font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 text-sm"
+          class="inline-block font-semibold text-[#1a9e8f] hover:text-[#147a83] transition-colors duration-200 text-sm"
         >
           Masuk Sekarang (Manual)
         </router-link>
@@ -125,10 +125,10 @@ const handleSubmit = async () => {
 
       <!-- Form State -->
       <form v-else @submit.prevent="handleSubmit" class="space-y-1">
-        <!-- Tampilkan email terkunci untuk info kasir -->
-        <div class="mb-4 p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-          <span class="text-slate-400">Email Kasir:</span>
-          <span class="text-slate-200 font-semibold">{{ email || 'Mengambil data...' }}</span>
+        <!-- Email info box -->
+        <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between text-xs">
+          <span class="text-gray-500">Email Kasir:</span>
+          <span class="text-gray-800 font-semibold">{{ email || 'Mengambil data...' }}</span>
         </div>
 
         <!-- Input Password Baru -->

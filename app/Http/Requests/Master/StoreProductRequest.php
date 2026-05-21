@@ -32,6 +32,9 @@ class StoreProductRequest extends FormRequest
             'is_taxable' => 'boolean',
             'is_consignment' => 'boolean',
             'is_active' => 'boolean',
+            'purchase_type' => 'nullable|in:outright,consignment',
+            'consignment_commission_fee' => 'nullable|numeric|min:0|max:100',
+            'min_margin_percentage' => 'nullable|numeric|min:0|max:100',
         ];
     }
 }

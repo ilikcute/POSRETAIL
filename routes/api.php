@@ -62,6 +62,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('units', UnitController::class);
     Route::apiResource('brands', BrandController::class);
+    // Product Excel routes must be before apiResource to avoid {product} wildcard capture
+    Route::get('products/export', [ProductController::class, 'export']);
+    Route::get('products/import-template', [ProductController::class, 'downloadTemplate']);
+    Route::post('products/import', [ProductController::class, 'import']);
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-variants', ProductVariantController::class);
     Route::apiResource('product-stocks', ProductStockController::class);

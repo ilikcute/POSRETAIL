@@ -22,6 +22,9 @@ import SupplierTab from './tabs/SupplierTab.vue'
 import StationTab from './tabs/StationTab.vue'
 import WarehouseTab from './tabs/WarehouseTab.vue'
 import StoreTab from './tabs/StoreTab.vue'
+import RackTab from './tabs/RackTab.vue'
+import ProductTab from './tabs/ProductTab.vue'
+
 
 const router = useRouter()
 const toast = useToast()
@@ -56,6 +59,10 @@ const currentTabComponent = computed(() => {
       return WarehouseTab
     case 'Store':
       return StoreTab
+    case 'Rack':
+      return RackTab
+    case 'Product':
+      return ProductTab
     default:
       return SalesOverview
   }

@@ -30,6 +30,9 @@ class Product extends Model
         'is_taxable',
         'is_consignment',
         'is_active',
+        'purchase_type',
+        'consignment_commission_fee',
+        'min_margin_percentage',
     ];
 
     protected $casts = [
@@ -42,6 +45,8 @@ class Product extends Model
         'cost_price' => 'decimal:2',
         'price' => 'decimal:2',
         'wholesale_price' => 'decimal:2',
+        'consignment_commission_fee' => 'decimal:2',
+        'min_margin_percentage' => 'decimal:2',
     ];
 
     public function category()

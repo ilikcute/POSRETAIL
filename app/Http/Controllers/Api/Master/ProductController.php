@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers\Api\Master;
 
+use App\Exports\Master\ProductExport;
+use App\Exports\Master\ProductImportTemplate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Master\StoreProductRequest;
 use App\Http\Requests\Master\UpdateProductRequest;
+use App\Imports\Master\ProductImport;
 use App\Repositories\Contracts\Master\ProductRepositoryInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProductController extends Controller
 {
@@ -22,13 +28,7 @@ class ProductController extends Controller
 
     public function index(): JsonResponse
     {
-        // Untuk tabel transaksi/master yang punya relasi, disarankan pakai load.
-        // Berhubung kita pakai BaseRepository, kita perlu expand base repo untuk with(),
-        // Namun untuk sementara all() cukup, atau kita ambil dari model langsung khusus untuk index yang kompleks.
-        // Untuk menjaga clean arsitektur, $this->productRepository->all() sudah cukup,
-        // tapi kita bisa improve dengan mengambil relasi jika diperlukan.
         $products = $this->productRepository->all();
-        // Untuk me-load relasi: $products->load(['category', 'brand', 'unit']);
 
         return $this->successResponse($products, 'Products retrieved successfully');
     }
@@ -43,7 +43,7 @@ class ProductController extends Controller
     public function show($id): JsonResponse
     {
         $product = $this->productRepository->findOrFail($id);
-        $product->load(['category', 'brand', 'unit']); // Load relasi untuk detail
+        $product->load(['category', 'brand', 'unit']);
 
         return $this->successResponse($product, 'Product retrieved successfully');
     }
@@ -60,5 +60,49 @@ class ProductController extends Controller
         $this->productRepository->delete($id);
 
         return $this->successResponse(null, 'Product deleted successfully');
+    }
+
+    /**
+     * Export all products to an Excel file (.xlsx).
+     */
+    public function export(): BinaryFileResponse
+    {
+        $filename = 'products_export_'.now()->format('Ymd_His').'.xlsx';
+
+        return Excel::download(new ProductExport, $filename);
+    }
+
+    /**
+     * Download a blank import template with example rows.
+     */
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new ProductImportTemplate, 'products_import_template.xlsx');
+    }
+
+    /**
+     * Import products from an uploaded Excel / CSV file.
+     */
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        $import = new ProductImport;
+
+        Excel::import($import, $request->file('file'));
+
+        $failures = $import->failureDetails;
+
+        return $this->successResponse(
+            [
+                'success_count' => $import->successCount,
+                'failure_count' => count($failures),
+                'failures' => $failures,
+            ],
+            $import->successCount.' product(s) imported successfully.'
+                .(count($failures) > 0 ? ' '.count($failures).' row(s) had errors.' : '')
+        );
     }
 }

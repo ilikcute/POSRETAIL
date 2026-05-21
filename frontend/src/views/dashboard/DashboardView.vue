@@ -24,6 +24,10 @@ import WarehouseTab from './tabs/WarehouseTab.vue'
 import StoreTab from './tabs/StoreTab.vue'
 import RackTab from './tabs/RackTab.vue'
 import ProductTab from './tabs/ProductTab.vue'
+import ProductVariantTab from './tabs/ProductVariantTab.vue'
+import PriceTagTab from './tabs/PriceTagTab.vue'
+import ShiftTab from './tabs/ShiftTab.vue'
+import PromotionTab from './tabs/PromotionTab.vue'
 
 
 const router = useRouter()
@@ -63,10 +67,19 @@ const currentTabComponent = computed(() => {
       return RackTab
     case 'Product':
       return ProductTab
+    case 'product Variance':
+      return ProductVariantTab
+    case 'Price Tag':
+      return PriceTagTab
+    case 'Shift':
+      return ShiftTab
+    case 'Promotion':
+      return PromotionTab
     default:
       return SalesOverview
   }
 })
+
 </script>
 
 <template>

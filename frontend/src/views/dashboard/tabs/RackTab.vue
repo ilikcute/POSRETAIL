@@ -48,6 +48,13 @@ const errors = ref({
 
 // Error for planogram adding
 const planogramError = ref('')
+const planogramErrors = ref({
+  product_id: '',
+  shelf_level: '',
+  position_order: '',
+  facing: '',
+  max_capacity: ''
+})
 
 // Fetch all warehouses
 const fetchWarehouses = async () => {
@@ -222,6 +229,13 @@ const resetPlanogramForm = () => {
     max_capacity: 10
   }
   planogramError.value = ''
+  planogramErrors.value = {
+    product_id: '',
+    shelf_level: '',
+    position_order: '',
+    facing: '',
+    max_capacity: ''
+  }
 }
 
 // Submit Rack Details
@@ -310,10 +324,88 @@ const handleDelete = async (id) => {
   }
 }
 
-// Add product to planogram shelf
-const handleAddProductToShelf = async () => {
+// Validate planogram input fields client-side
+const validatePlanogramForm = () => {
+  let isValid = true
+  planogramErrors.value = {
+    product_id: '',
+    shelf_level: '',
+    position_order: '',
+    facing: '',
+    max_capacity: ''
+  }
+
+  // Product Selection
   if (!planogramForm.value.product_id) {
-    planogramError.value = 'Please select a product to map.'
+    planogramErrors.value.product_id = 'Product SKU is required.'
+    isValid = false
+  }
+
+  // Shelf Level
+  const shelfLevel = Number(planogramForm.value.shelf_level)
+  if (!planogramForm.value.shelf_level && planogramForm.value.shelf_level !== 0) {
+    planogramErrors.value.shelf_level = 'Shelf level is required.'
+    isValid = false
+  } else if (!Number.isInteger(shelfLevel) || shelfLevel < 1 || shelfLevel > 10) {
+    planogramErrors.value.shelf_level = 'Must be an integer between 1 and 10.'
+    isValid = false
+  }
+
+  // Position Order
+  const positionOrder = Number(planogramForm.value.position_order)
+  if (!planogramForm.value.position_order && planogramForm.value.position_order !== 0) {
+    planogramErrors.value.position_order = 'Position order is required.'
+    isValid = false
+  } else if (!Number.isInteger(positionOrder) || positionOrder < 1) {
+    planogramErrors.value.position_order = 'Must be a positive integer.'
+    isValid = false
+  }
+
+  // Facing Count
+  const facing = Number(planogramForm.value.facing)
+  if (!planogramForm.value.facing && planogramForm.value.facing !== 0) {
+    planogramErrors.value.facing = 'Facing count is required.'
+    isValid = false
+  } else if (!Number.isInteger(facing) || facing < 1) {
+    planogramErrors.value.facing = 'Must be a positive integer.'
+    isValid = false
+  }
+
+  // Max Capacity
+  const maxCapacity = Number(planogramForm.value.max_capacity)
+  if (!planogramForm.value.max_capacity && planogramForm.value.max_capacity !== 0) {
+    planogramErrors.value.max_capacity = 'Max capacity is required.'
+    isValid = false
+  } else if (!Number.isInteger(maxCapacity) || maxCapacity < 1) {
+    planogramErrors.value.max_capacity = 'Must be a positive integer.'
+    isValid = false
+  }
+
+  return isValid
+}
+
+// Select a product from the visual planogram to edit its details
+const handleSelectProductForEditing = (product, shelfLevel) => {
+  planogramForm.value = {
+    product_id: product.id,
+    shelf_level: shelfLevel,
+    position_order: product.planogram.position_order,
+    facing: product.planogram.facing,
+    max_capacity: product.planogram.max_capacity
+  }
+  planogramError.value = ''
+  planogramErrors.value = {
+    product_id: '',
+    shelf_level: '',
+    position_order: '',
+    facing: '',
+    max_capacity: ''
+  }
+}
+
+// Add product to planogram shelf with upsert capability
+const handleAddProductToShelf = async () => {
+  if (!validatePlanogramForm()) {
     return
   }
   
@@ -335,29 +427,64 @@ const handleAddProductToShelf = async () => {
     })
   })
 
-  // Check duplicate product on same shelf
-  const duplicate = currentItems.find(item => item.product_id === planogramForm.value.product_id)
-  if (duplicate) {
-    planogramError.value = 'This product is already mapped to this rack. Remove it first to re-locate.'
-    return
+  // Upsert the mapped item
+  const existingIndex = currentItems.findIndex(item => item.product_id === planogramForm.value.product_id)
+  if (existingIndex > -1) {
+    currentItems[existingIndex] = {
+      product_id: planogramForm.value.product_id,
+      shelf_level: parseInt(planogramForm.value.shelf_level),
+      position_order: parseInt(planogramForm.value.position_order),
+      facing: parseInt(planogramForm.value.facing),
+      max_capacity: parseInt(planogramForm.value.max_capacity)
+    }
+  } else {
+    currentItems.push({
+      product_id: planogramForm.value.product_id,
+      shelf_level: parseInt(planogramForm.value.shelf_level),
+      position_order: parseInt(planogramForm.value.position_order),
+      facing: parseInt(planogramForm.value.facing),
+      max_capacity: parseInt(planogramForm.value.max_capacity)
+    })
   }
-
-  currentItems.push({
-    product_id: planogramForm.value.product_id,
-    shelf_level: parseInt(planogramForm.value.shelf_level),
-    position_order: parseInt(planogramForm.value.position_order),
-    facing: parseInt(planogramForm.value.facing),
-    max_capacity: parseInt(planogramForm.value.max_capacity)
-  })
 
   try {
     await api.post(`/racks/${editId.value}/planogram`, { items: currentItems })
-    toast.success('Product added to planogram!')
+    toast.success('Product successfully mapped to planogram!')
     resetPlanogramForm()
     fetchPlanogram(editId.value)
   } catch (error) {
     console.error('Error adding product to planogram:', error)
-    toast.error(error.response?.data?.message || 'Failed to update planogram layout.')
+    if (error.response && error.response.status === 422) {
+      const serverErrors = error.response.data.errors || {}
+      planogramError.value = error.response.data.message || 'Validation error from server.'
+      
+      // Reset individual errors
+      planogramErrors.value = {
+        product_id: '',
+        shelf_level: '',
+        position_order: '',
+        facing: '',
+        max_capacity: ''
+      }
+
+      // Map backend validation errors back to specific fields if index matches
+      const formProductId = planogramForm.value.product_id
+      const itemIndex = currentItems.findIndex(item => item.product_id === formProductId)
+      
+      if (itemIndex > -1) {
+        const fields = ['product_id', 'shelf_level', 'position_order', 'facing', 'max_capacity']
+        fields.forEach(field => {
+          const serverKey = `items.${itemIndex}.${field}`
+          if (serverErrors[serverKey]) {
+            planogramErrors.value[field] = serverErrors[serverKey][0]
+          }
+        })
+      }
+      
+      toast.error('Validation error when updating planogram.')
+    } else {
+      toast.error(error.response?.data?.message || 'Failed to update planogram layout.')
+    }
   }
 }
 
@@ -636,26 +763,30 @@ onMounted(() => {
                 <label class="block text-[10px] font-bold text-emerald-800/80">PRODUCT SKU *</label>
                 <select 
                   v-model="planogramForm.product_id"
-                  class="w-full px-3 py-1.5 border border-emerald-100 bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+                  class="w-full px-3 py-1.5 border bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+                  :class="planogramErrors.product_id ? 'border-red-400 focus:border-red-400 animate-shake' : 'border-emerald-100'"
                 >
                   <option value="">-- Choose Product --</option>
                   <option v-for="prod in productsList" :key="prod.id" :value="prod.id">
                     {{ prod.name }} ({{ prod.code }})
                   </option>
                 </select>
+                <p v-if="planogramErrors.product_id" class="text-[9px] text-red-500 font-semibold mt-0.5 leading-none">{{ planogramErrors.product_id }}</p>
               </div>
 
               <!-- Grid details: shelf level, position order, facing, capacity -->
               <div class="grid grid-cols-2 gap-2">
                 <div class="space-y-1">
-                  <label class="block text-[10px] font-bold text-emerald-800/80">SHELF LEVEL (1-5)</label>
+                  <label class="block text-[10px] font-bold text-emerald-800/80">SHELF LEVEL (1-10)</label>
                   <input 
                     type="number" 
                     min="1"
                     max="10"
                     v-model.number="planogramForm.shelf_level"
-                    class="w-full px-3 py-1 border border-emerald-100 bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    class="w-full px-3 py-1 border bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    :class="planogramErrors.shelf_level ? 'border-red-400 focus:border-red-400 animate-shake' : 'border-emerald-100'"
                   />
+                  <p v-if="planogramErrors.shelf_level" class="text-[9px] text-red-500 font-semibold mt-0.5 leading-none">{{ planogramErrors.shelf_level }}</p>
                 </div>
                 <div class="space-y-1">
                   <label class="block text-[10px] font-bold text-emerald-800/80">POSITION ORDER (L->R)</label>
@@ -664,8 +795,10 @@ onMounted(() => {
                     min="1"
                     max="50"
                     v-model.number="planogramForm.position_order"
-                    class="w-full px-3 py-1 border border-emerald-100 bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    class="w-full px-3 py-1 border bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    :class="planogramErrors.position_order ? 'border-red-400 focus:border-red-400 animate-shake' : 'border-emerald-100'"
                   />
+                  <p v-if="planogramErrors.position_order" class="text-[9px] text-red-500 font-semibold mt-0.5 leading-none">{{ planogramErrors.position_order }}</p>
                 </div>
                 <div class="space-y-1">
                   <label class="block text-[10px] font-bold text-emerald-800/80">FACING COUNT</label>
@@ -673,8 +806,10 @@ onMounted(() => {
                     type="number" 
                     min="1"
                     v-model.number="planogramForm.facing"
-                    class="w-full px-3 py-1 border border-emerald-100 bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    class="w-full px-3 py-1 border bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    :class="planogramErrors.facing ? 'border-red-400 focus:border-red-400 animate-shake' : 'border-emerald-100'"
                   />
+                  <p v-if="planogramErrors.facing" class="text-[9px] text-red-500 font-semibold mt-0.5 leading-none">{{ planogramErrors.facing }}</p>
                 </div>
                 <div class="space-y-1">
                   <label class="block text-[10px] font-bold text-emerald-800/80">MAX CAPACITY</label>
@@ -682,21 +817,33 @@ onMounted(() => {
                     type="number" 
                     min="1"
                     v-model.number="planogramForm.max_capacity"
-                    class="w-full px-3 py-1 border border-emerald-100 bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    class="w-full px-3 py-1 border bg-white rounded-lg text-xs focus:outline-none focus:border-emerald-500"
+                    :class="planogramErrors.max_capacity ? 'border-red-400 focus:border-red-400 animate-shake' : 'border-emerald-100'"
                   />
+                  <p v-if="planogramErrors.max_capacity" class="text-[9px] text-red-500 font-semibold mt-0.5 leading-none">{{ planogramErrors.max_capacity }}</p>
                 </div>
               </div>
 
               <!-- Planogram error validation -->
-              <p v-if="planogramError" class="text-xs text-red-500 font-semibold mt-1">{{ planogramError }}</p>
+              <p v-if="planogramError" class="text-xs text-red-500 font-semibold mt-1 p-2 bg-red-50 border border-red-100 rounded-lg">{{ planogramError }}</p>
 
-              <button 
-                type="button"
-                @click="handleAddProductToShelf"
-                class="w-full py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-sm"
-              >
-                Map on Shelf
-              </button>
+              <div class="flex gap-2">
+                <button 
+                  type="button"
+                  @click="handleAddProductToShelf"
+                  class="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  Map on Shelf
+                </button>
+                <button 
+                  type="button"
+                  @click="resetPlanogramForm"
+                  class="px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs font-bold transition-all cursor-pointer active:scale-95"
+                  title="Clear Form"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
 
@@ -956,13 +1103,15 @@ onMounted(() => {
                 <div 
                   v-for="prod in shelf.products" 
                   :key="prod.id"
-                  class="w-[120px] bg-white border border-slate-200 rounded-lg p-2 shadow-sm relative group flex flex-col justify-between hover:shadow-md transition-all"
+                  @click="handleSelectProductForEditing(prod, shelf.shelf_level)"
+                  class="w-[120px] bg-white border border-slate-200 rounded-lg p-2 shadow-sm relative group flex flex-col justify-between hover:shadow-md transition-all cursor-pointer hover:border-indigo-400 hover:ring-2 hover:ring-indigo-100"
+                  title="Click to edit mapping details"
                 >
                   <!-- Delete button (visible on hover) -->
                   <button 
                     type="button" 
-                    @click="handleRemoveProductFromShelf(prod.id)"
-                    class="absolute -top-1.5 -right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow cursor-pointer transition-all hover:scale-110"
+                    @click.stop="handleRemoveProductFromShelf(prod.id)"
+                    class="absolute -top-1.5 -right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow cursor-pointer transition-all hover:scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     title="Remove Product"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-2.5 h-2.5">

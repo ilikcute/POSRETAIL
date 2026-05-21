@@ -55,6 +55,7 @@ const menuGroups = [
     name: 'Sales',
     icon: 'shopping-cart',
     items: [
+      { id: 'Shift', icon: 'clock', title: 'Shift' },
       { id: 'Cash Pull', icon: 'wallet', title: 'Cash Pull' },
       { id: 'Daily CLose', icon: 'lock-closed', title: 'Daily Close' },
       { id: 'Loyality Transaksi', icon: 'gift', title: 'Loyalty Transaksi' },

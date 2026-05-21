@@ -38,7 +38,7 @@ class ShiftController extends Controller
     public function show($id): JsonResponse
     {
         $shift = $this->shiftRepository->findOrFail($id);
-        $shift->load(['user', 'station']);
+        $shift->load(['user', 'station', 'sales.customer', 'sales.promotion']);
 
         return $this->successResponse($shift, 'Shift details retrieved successfully');
     }

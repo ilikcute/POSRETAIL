@@ -1,3 +1,12 @@
+@php
+    $size = request('size', 'sedang');
+    $columns = 3;
+    if ($size === 'besar') {
+        $columns = 1;
+    } elseif ($size === 'sedang') {
+        $columns = 2;
+    }
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -48,10 +57,111 @@
         /* Container grid A4 */
         .tags-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat({{ $columns }}, 1fr);
             gap: 20px;
             max-width: 1000px;
             margin: 0 auto;
+        }
+
+        /* Size-specific tags adjustments */
+        
+        /* Format BESAR (Self-taker, 1 column) */
+        .tags-container.size-besar {
+            max-width: 650px;
+            gap: 30px;
+        }
+        .size-besar .price-tag {
+            min-height: 280px;
+            padding: 24px;
+            border-radius: 16px;
+            border-width: 3px;
+        }
+        .size-besar .promo-banner {
+            font-size: 16px;
+            padding: 6px 0;
+        }
+        .size-besar .tag-header {
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        .size-besar .product-name {
+            font-size: 24px;
+            height: 60px;
+            margin-top: 10px;
+        }
+        .size-besar .price-normal {
+            font-size: 46px;
+        }
+        .size-besar .price-promo {
+            font-size: 50px;
+        }
+        .size-besar .price-strike {
+            font-size: 22px;
+        }
+        .size-besar .barcode-lines {
+            width: 160px;
+            height: 35px;
+        }
+        .size-besar .barcode-text {
+            font-size: 13px;
+        }
+        .size-besar .rack-location {
+            font-size: 15px;
+            padding: 4px 10px;
+        }
+        .size-besar .tag-notes {
+            font-size: 12px;
+        }
+
+        /* Format SEDANG (Large Volume Shelf, 2 columns) */
+        .tags-container.size-sedang {
+            max-width: 850px;
+            gap: 20px;
+        }
+        .size-sedang .price-tag {
+            min-height: 190px;
+            padding: 16px;
+        }
+        .size-sedang .promo-banner {
+            font-size: 13px;
+            padding: 5px 0;
+        }
+        .size-sedang .tag-header {
+            font-size: 12px;
+            margin-top: 12px;
+        }
+        .size-sedang .product-name {
+            font-size: 18px;
+            height: 44px;
+        }
+        .size-sedang .price-normal {
+            font-size: 32px;
+        }
+        .size-sedang .price-promo {
+            font-size: 36px;
+        }
+        .size-sedang .price-strike {
+            font-size: 16px;
+        }
+        .size-sedang .barcode-lines {
+            width: 110px;
+            height: 24px;
+        }
+        .size-sedang .barcode-text {
+            font-size: 11px;
+        }
+        .size-sedang .rack-location {
+            font-size: 12px;
+            padding: 3px 8px;
+        }
+        .size-sedang .tag-notes {
+            font-size: 10px;
+        }
+
+        /* Format KECIL (Small Volume Shelf, 3 columns - default) */
+        .tags-container.size-kecil {
+            max-width: 1000px;
+            gap: 15px;
         }
 
         /* Desain Price Tag Premium */
@@ -240,7 +350,7 @@
         <button class="btn-print" onclick="window.print()">CETAK SEKARANG</button>
     </div>
 
-    <div class="tags-container">
+    <div class="tags-container size-{{ $size }}">
         @foreach($priceTags as $tag)
             <div class="price-tag {{ $tag['is_promo_active'] ? 'promo' : '' }}">
                 

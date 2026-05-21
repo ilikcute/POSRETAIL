@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Sales;
 
+use App\Models\Sales\Promotion;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePromotionRequest extends FormRequest
@@ -14,9 +15,13 @@ class UpdatePromotionRequest extends FormRequest
     public function rules(): array
     {
         $id = $this->route('promotion');
+        if ($id instanceof Promotion) {
+            $id = $id->id;
+        }
 
         return [
             'code' => 'sometimes|required|string|max:50|unique:promotions,code,'.$id,
+
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'sometimes|required|in:percentage,fixed_amount',

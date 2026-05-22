@@ -26,8 +26,20 @@ import RackTab from './tabs/RackTab.vue'
 import ProductTab from './tabs/ProductTab.vue'
 import ProductVariantTab from './tabs/ProductVariantTab.vue'
 import PriceTagTab from './tabs/PriceTagTab.vue'
+import InventoryTab from './tabs/InventoryTab.vue'
+import InventoryIntelligenceTab from './tabs/InventoryIntelligenceTab.vue'
+import AutoReplenishmentTab from './tabs/AutoReplenishmentTab.vue'
+import StockDisposalTab from './tabs/StockDisposalTab.vue'
+import ProductStockTab from './tabs/ProductStockTab.vue'
+import PurchaseTab from './tabs/PurchaseTab.vue'
 import ShiftTab from './tabs/ShiftTab.vue'
+import DailyCloseTab from './tabs/DailyCloseTab.vue'
 import PromotionTab from './tabs/PromotionTab.vue'
+import CashPullTab from './tabs/CashPullTab.vue'
+import LoyaltyTransactionTab from './tabs/LoyaltyTransactionTab.vue'
+import PricingSafeguardTab from './tabs/PricingSafeguardTab.vue'
+import SalesTab from './tabs/SalesTab.vue'
+import StationRemittanceTab from './tabs/StationRemittanceTab.vue'
 
 
 const router = useRouter()
@@ -71,10 +83,34 @@ const currentTabComponent = computed(() => {
       return ProductVariantTab
     case 'Price Tag':
       return PriceTagTab
+    case 'Inventory':
+      return InventoryTab
+    case 'Stock Disposal':
+      return StockDisposalTab
+    case 'Auto Replenishment':
+      return AutoReplenishmentTab
+    case 'Inventory Intelligent':
+      return InventoryIntelligenceTab
+    case 'Product Stock':
+      return ProductStockTab
     case 'Shift':
       return ShiftTab
+    case 'Daily CLose':
+      return DailyCloseTab
     case 'Promotion':
       return PromotionTab
+    case 'Cash Pull':
+      return CashPullTab
+    case 'Loyality Transaksi':
+      return LoyaltyTransactionTab
+    case 'Pricing Safe guard':
+      return PricingSafeguardTab
+    case 'Sales':
+      return SalesTab
+    case 'Purchases':
+      return PurchaseTab
+    case 'Station Remittance':
+      return StationRemittanceTab
     default:
       return SalesOverview
   }

@@ -17,4 +17,12 @@ class UpdateLoyaltyTransactionRequest extends FormRequest
             'description' => 'sometimes|required|string|max:255',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'description.required' => 'Deskripsi transaksi wajib diisi.',
+            'description.max' => 'Deskripsi tidak boleh lebih dari 255 karakter.',
+        ];
+    }
 }

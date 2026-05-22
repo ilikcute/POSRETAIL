@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Purchase;
 
 use App\Http\Controllers\Controller;
+use App\Exceptions\PurchaseException;
 use App\Http\Requests\Purchase\StorePurchaseRequest;
 use App\Http\Requests\Purchase\UpdatePurchaseRequest;
 use App\Repositories\Contracts\Purchase\PurchaseRepositoryInterface;
@@ -29,9 +30,15 @@ class PurchaseController extends Controller
 
     public function store(StorePurchaseRequest $request): JsonResponse
     {
-        $purchase = $this->purchaseRepository->create($request->validated());
+        try {
+            $purchase = $this->purchaseRepository->create($request->validated());
 
-        return $this->successResponse($purchase, 'Purchase document created successfully', 201);
+            return $this->successResponse($purchase, 'Purchase document created successfully', 201);
+        } catch (PurchaseException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan saat membuat dokumen pembelian. ' . $e->getMessage(), 500);
+        }
     }
 
     public function show($id): JsonResponse
@@ -46,15 +53,25 @@ class PurchaseController extends Controller
     // Di aplikasi nyata, update invoice yang sudah "received" membutuhkan revert stock logika.
     public function update(UpdatePurchaseRequest $request, $id): JsonResponse
     {
-        $purchase = $this->purchaseRepository->update($id, $request->except('items')); // Menyederhanakan update
+        try {
+            $purchase = $this->purchaseRepository->update($id, $request->except('items')); // Menyederhanakan update
 
-        return $this->successResponse($purchase, 'Purchase document updated successfully');
+            return $this->successResponse($purchase, 'Purchase document updated successfully');
+        } catch (PurchaseException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan saat memperbarui dokumen pembelian. ' . $e->getMessage(), 500);
+        }
     }
 
     public function destroy($id): JsonResponse
     {
-        $this->purchaseRepository->delete($id);
+        try {
+            $this->purchaseRepository->delete($id);
 
-        return $this->successResponse(null, 'Purchase document deleted successfully');
+            return $this->successResponse(null, 'Purchase document deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan saat menghapus dokumen pembelian. ' . $e->getMessage(), 500);
+        }
     }
 }

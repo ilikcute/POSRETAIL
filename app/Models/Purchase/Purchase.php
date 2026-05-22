@@ -23,6 +23,7 @@ class Purchase extends Model
         'type',
         'status',
         'payment_status',
+        'payment_method',
         'total_items',
         'total_amount',
         'tax_amount',

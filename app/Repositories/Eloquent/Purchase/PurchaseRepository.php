@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent\Purchase;
 
+use App\Exceptions\PurchaseException;
 use App\Models\Finance\Account;
 use App\Models\Finance\JournalEntry;
 use App\Models\Inventory\ProductStock;
@@ -34,7 +35,7 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
                 'return' => 'PR',
                 default => 'DOC',
             };
-            $attributes['reference_no'] = $prefix.'-'.date('Ym').'-'.str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $attributes['reference_no'] = $prefix . '-' . date('Ym') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             $attributes['created_by'] = auth()->id() ?? 1; // Default 1 for seeding/testing
 
             // Calculate Totals
@@ -71,6 +72,8 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
 
             $attributes['grand_total'] = ($totalAmount + $totalTax + $shippingCost) - $discountAmount;
 
+            $this->validatePurchaseBusinessRules($attributes, $totalAmount, $totalTax, $discountAmount, $shippingCost);
+
             $purchase = parent::create($attributes);
 
             $purchase->items()->createMany($processedItems);
@@ -86,6 +89,21 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
 
             return $purchase->load('items');
         });
+    }
+
+    private function validatePurchaseBusinessRules(array $attributes, float $totalAmount, float $totalTax, float $discountAmount, float $shippingCost): void
+    {
+        if ($attributes['type'] === 'return' && empty($attributes['parent_id'])) {
+            throw new PurchaseException('Retur pembelian harus merujuk ke dokumen pembelian sebelumnya.');
+        }
+
+        if ($totalAmount <= 0) {
+            throw new PurchaseException('Total nilai barang harus lebih besar dari nol.');
+        }
+
+        if (($totalAmount + $totalTax + $shippingCost - $discountAmount) < 0) {
+            throw new PurchaseException('Grand total tidak boleh negatif.');
+        }
     }
 
     private function updateStock(Purchase $purchase, string $operation)
@@ -128,9 +146,9 @@ class PurchaseRepository extends BaseRepository implements PurchaseRepositoryInt
         }
 
         $entry = JournalEntry::create([
-            'reference_no' => 'JV-PURC-'.str_pad($purchase->id, 6, '0', STR_PAD_LEFT),
+            'reference_no' => 'JV-PURC-' . str_pad($purchase->id, 6, '0', STR_PAD_LEFT),
             'transaction_date' => now()->format('Y-m-d'),
-            'description' => ($purchase->type === 'purchase' ? 'Jurnal Penerimaan Barang Supplier - Ref #' : 'Jurnal Retur Pembelian Supplier - Ref #').$purchase->reference_no,
+            'description' => ($purchase->type === 'purchase' ? 'Jurnal Penerimaan Barang Supplier - Ref #' : 'Jurnal Retur Pembelian Supplier - Ref #') . $purchase->reference_no,
             'created_by' => auth()->id() ?? 1,
         ]);
 

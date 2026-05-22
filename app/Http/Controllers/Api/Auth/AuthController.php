@@ -70,6 +70,13 @@ class AuthController extends Controller
         );
     }
 
+    public function users(Request $request): JsonResponse
+    {
+        $users = $this->userRepository->all()->where('is_active', true);
+
+        return $this->successResponse($users->values(), 'Daftar user berhasil diambil');
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = $this->userRepository->create([

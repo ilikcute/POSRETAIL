@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Inventory;
 
+use App\Exceptions\InventoryException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Inventory\StoreProductStockRequest;
 use App\Http\Requests\Inventory\UpdateProductStockRequest;
@@ -23,16 +24,22 @@ class ProductStockController extends Controller
     public function index(): JsonResponse
     {
         $stocks = $this->productStockRepository->all();
+        $stocks->load(['product', 'variant', 'warehouse', 'rack']);
 
-        // Eager load jika menggunakan query langsung dari model, atau return raw
         return $this->successResponse($stocks, 'Product stocks retrieved successfully');
     }
 
     public function store(StoreProductStockRequest $request): JsonResponse
     {
-        $stock = $this->productStockRepository->create($request->validated());
+        try {
+            $stock = $this->productStockRepository->create($request->validated());
 
-        return $this->successResponse($stock, 'Product stock created successfully', 201);
+            return $this->successResponse($stock, 'Product stock created successfully', 201);
+        } catch (InventoryException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan saat membuat stok produk. ' . $e->getMessage(), 500);
+        }
     }
 
     public function show($id): JsonResponse
@@ -45,15 +52,25 @@ class ProductStockController extends Controller
 
     public function update(UpdateProductStockRequest $request, $id): JsonResponse
     {
-        $stock = $this->productStockRepository->update($id, $request->validated());
+        try {
+            $stock = $this->productStockRepository->update($id, $request->validated());
 
-        return $this->successResponse($stock, 'Product stock updated successfully');
+            return $this->successResponse($stock, 'Product stock updated successfully');
+        } catch (InventoryException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan saat memperbarui stok produk. ' . $e->getMessage(), 500);
+        }
     }
 
     public function destroy($id): JsonResponse
     {
-        $this->productStockRepository->delete($id);
+        try {
+            $this->productStockRepository->delete($id);
 
-        return $this->successResponse(null, 'Product stock deleted successfully');
+            return $this->successResponse(null, 'Product stock deleted successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan saat menghapus stok produk. ' . $e->getMessage(), 500);
+        }
     }
 }

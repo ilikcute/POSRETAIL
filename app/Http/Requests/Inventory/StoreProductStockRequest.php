@@ -18,7 +18,7 @@ class StoreProductStockRequest extends FormRequest
             'product_variant_id' => 'nullable|exists:product_variants,id',
             'warehouse_id' => 'required|exists:warehouses,id',
             'rack_id' => 'nullable|exists:racks,id',
-            'qty' => 'required|numeric',
+            'qty' => 'required|numeric|min:0',
             'min_qty' => 'nullable|numeric|min:0',
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Inventory;
 
 use App\Http\Controllers\Controller;
+use App\Exceptions\AutoReplenishmentException;
 use App\Models\Master\Product;
 use App\Models\Master\Store;
 use App\Models\Master\Supplier;
@@ -28,18 +29,22 @@ class AutoReplenishmentController extends Controller
         $storeId = $request->query('store_id') ?? Store::first()->id;
 
         // Ambil produk aktif yang stoknya kurang dari reorder_point
-        $products = Product::with(['unit', 'category', 'stocks', 'racks'])
+        $products = Product::with(['unit', 'category', 'racks'])
             ->where('is_active', true)
-            ->get();
+            ->withSum(['stocks as current_stock' => function ($q) use ($warehouseId) {
+                $q->when($warehouseId, function ($q) use ($warehouseId) {
+                    $q->where('warehouse_id', $warehouseId);
+                });
+            }], 'qty')
+            ->get()
+            ->filter(function ($product) {
+                return (float) ($product->current_stock ?? 0) <= (float) $product->reorder_point;
+            });
 
         $suggestions = collect();
 
         foreach ($products as $product) {
-            $currentStock = $product->stocks()
-                ->when($warehouseId, function ($q) use ($warehouseId) {
-                    $q->where('warehouse_id', $warehouseId);
-                })
-                ->sum('qty');
+            $currentStock = (float) ($product->current_stock ?? 0);
 
             // Cek apakah stok di bawah atau sama dengan reorder point
             if ($currentStock <= $product->reorder_point) {
@@ -143,7 +148,7 @@ class AutoReplenishmentController extends Controller
         $request->validate([
             'store_id' => 'required|exists:stores,id',
             'warehouse_id' => 'required|exists:warehouses,id',
-            'suppliers' => 'required|array',
+            'suppliers' => 'required|array|min:1',
             'suppliers.*.supplier_id' => 'required|exists:suppliers,id',
             'suppliers.*.items' => 'required|array|min:1',
             'suppliers.*.items.*.product_id' => 'required|exists:products,id',
@@ -157,72 +162,90 @@ class AutoReplenishmentController extends Controller
 
         $createdPOs = [];
 
-        DB::transaction(function () use ($request, $storeId, $warehouseId, $userId, &$createdPOs) {
-            foreach ($request->input('suppliers') as $supData) {
-                $supplierId = $supData['supplier_id'];
+        try {
+            DB::transaction(function () use ($request, $storeId, $warehouseId, $userId, &$createdPOs) {
+                foreach ($request->input('suppliers') as $supData) {
+                    $supplierId = $supData['supplier_id'];
 
-                // Genereate unique PO reference number
-                $refNo = 'PO-'.now()->format('Ymd').'-'.strtoupper(Str::random(5));
+                    if (! Supplier::where('id', $supplierId)->exists()) {
+                        throw new AutoReplenishmentException('Supplier tidak ditemukan untuk pembuatan draft PO.');
+                    }
 
-                $totalItems = 0;
-                $totalAmount = 0.0;
+                    if (empty($supData['items'])) {
+                        throw new AutoReplenishmentException('Setiap supplier harus memiliki minimal satu item.');
+                    }
 
-                // 1. Buat Header PO (status = pending, type = order)
-                $purchase = Purchase::create([
-                    'store_id' => $storeId,
-                    'supplier_id' => $supplierId,
-                    'warehouse_id' => $warehouseId,
-                    'created_by' => $userId,
-                    'reference_no' => $refNo,
-                    'type' => 'order', // Purchase Order (Rencana PO)
-                    'status' => 'pending', // Berstatus pending, menunggu persetujuan / pengiriman supplier
-                    'payment_status' => 'unpaid',
-                    'total_items' => 0,
-                    'total_amount' => 0,
-                    'tax_amount' => 0,
-                    'discount_amount' => 0,
-                    'shipping_cost' => 0,
-                    'grand_total' => 0,
-                    'notes' => 'Otomatis dibuat oleh Modul Auto-Replenishment POSRETAIL',
-                ]);
+                    // Generate unique PO reference number
+                    $refNo = 'PO-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5));
 
-                // 2. Buat PO Detail Items
-                foreach ($supData['items'] as $itemData) {
-                    $subtotal = $itemData['qty'] * $itemData['cost_price'];
+                    $totalItems = 0;
+                    $totalAmount = 0.0;
 
-                    PurchaseItem::create([
-                        'purchase_id' => $purchase->id,
-                        'product_id' => $itemData['product_id'],
-                        'qty' => $itemData['qty'],
-                        'unit_cost' => $itemData['cost_price'],
-                        'subtotal' => $subtotal,
+                    // 1. Buat Header PO (status = pending, type = order)
+                    $purchase = Purchase::create([
+                        'store_id' => $storeId,
+                        'supplier_id' => $supplierId,
+                        'warehouse_id' => $warehouseId,
+                        'created_by' => $userId,
+                        'reference_no' => $refNo,
+                        'type' => 'order', // Purchase Order (Rencana PO)
+                        'status' => 'pending', // Berstatus pending, menunggu persetujuan / pengiriman supplier
+                        'payment_status' => 'unpaid',
+                        'total_items' => 0,
+                        'total_amount' => 0,
+                        'tax_amount' => 0,
+                        'discount_amount' => 0,
+                        'shipping_cost' => 0,
+                        'grand_total' => 0,
+                        'notes' => 'Otomatis dibuat oleh Modul Auto-Replenishment POSRETAIL',
                     ]);
 
-                    $totalItems += $itemData['qty'];
-                    $totalAmount += $subtotal;
+                    // 2. Buat PO Detail Items
+                    foreach ($supData['items'] as $itemData) {
+                        if (! Product::where('id', $itemData['product_id'])->exists()) {
+                            throw new AutoReplenishmentException('Produk tidak ditemukan untuk item draft PO.');
+                        }
+
+                        $subtotal = $itemData['qty'] * $itemData['cost_price'];
+
+                        PurchaseItem::create([
+                            'purchase_id' => $purchase->id,
+                            'product_id' => $itemData['product_id'],
+                            'qty' => $itemData['qty'],
+                            'unit_cost' => $itemData['cost_price'],
+                            'subtotal' => $subtotal,
+                        ]);
+
+                        $totalItems += $itemData['qty'];
+                        $totalAmount += $subtotal;
+                    }
+
+                    // 3. Update nominal total pada Header PO
+                    $purchase->update([
+                        'total_items' => $totalItems,
+                        'total_amount' => $totalAmount,
+                        'grand_total' => $totalAmount, // assuming no tax/shipping for draft PO
+                    ]);
+
+                    $purchase->load(['supplier', 'warehouse']);
+
+                    $createdPOs[] = [
+                        'purchase_id' => $purchase->id,
+                        'reference_no' => $purchase->reference_no,
+                        'supplier_name' => $purchase->supplier->name,
+                        'warehouse_name' => $purchase->warehouse->name,
+                        'total_items' => $totalItems,
+                        'grand_total' => $totalAmount,
+                        'status' => $purchase->status,
+                    ];
                 }
+            });
 
-                // 3. Update nominal total pada Header PO
-                $purchase->update([
-                    'total_items' => $totalItems,
-                    'total_amount' => $totalAmount,
-                    'grand_total' => $totalAmount, // assuming no tax/shipping for draft PO
-                ]);
-
-                $purchase->load(['supplier', 'warehouse']);
-
-                $createdPOs[] = [
-                    'purchase_id' => $purchase->id,
-                    'reference_no' => $purchase->reference_no,
-                    'supplier_name' => $purchase->supplier->name,
-                    'warehouse_name' => $purchase->warehouse->name,
-                    'total_items' => $totalItems,
-                    'grand_total' => $totalAmount,
-                    'status' => $purchase->status,
-                ];
-            }
-        });
-
-        return $this->successResponse($createdPOs, 'Smart PO drafts created successfully', 201);
+            return $this->successResponse($createdPOs, 'Smart PO drafts created successfully', 201);
+        } catch (AutoReplenishmentException $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Gagal membuat draft PO. ' . $e->getMessage(), 500);
+        }
     }
 }

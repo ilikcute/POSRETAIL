@@ -2,6 +2,7 @@
 
 namespace App\Models\Master;
 
+use App\Models\Sales\LoyaltyTransaction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,4 +25,9 @@ class Customer extends Model
         'point_balance' => 'integer',
         'is_active' => 'boolean',
     ];
+
+    public function loyaltyTransactions()
+    {
+        return $this->hasMany(LoyaltyTransaction::class);
+    }
 }

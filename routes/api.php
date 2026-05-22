@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/users', [AuthController::class, 'users']);
 
     // Master Data
     Route::apiResource('stores', StoreController::class);
@@ -84,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Shift & Closing Accounting
     Route::apiResource('shifts', ShiftController::class);
+    Route::get('daily-closes/preview', [DailyCloseController::class, 'preview']);
     Route::apiResource('daily-closes', DailyCloseController::class);
     Route::apiResource('month-ends', MonthEndController::class);
     Route::apiResource('cash-transactions', CashTransactionController::class);
@@ -137,11 +139,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('consignment/settle', [ConsignmentTaxController::class, 'settleConsignment']);
 
     // Smart Pricing Safeguard & Margin Control
+    Route::get('pricing/safeguards', [PricingSafeguardController::class, 'index']);
     Route::post('pricing/set-rules', [PricingSafeguardController::class, 'setPriceRules']);
     Route::post('pricing/validate-promo', [PricingSafeguardController::class, 'validatePromoMargin']);
 
     // Cash Pull & Drawer Limit Safeguard (Setor Tengah)
-    Route::get('cash-pull/check/{stationId}', [CashPullController::class, 'checkDrawerLimit']);
+    Route::get('cash-pull/check/{station}', [CashPullController::class, 'checkDrawerLimit']);
     Route::post('cash-pull/execute', [CashPullController::class, 'executeCashPull']);
 
     // Centralized Suspended Carts & Shared Queuing
@@ -149,6 +152,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('suspended-carts/pending', [SuspendedCartController::class, 'getPendingCarts']);
     Route::get('suspended-carts/retrieve/{queueCode}', [SuspendedCartController::class, 'retrieveCart']);
     Route::post('suspended-carts/complete', [SuspendedCartController::class, 'completeCheckout']);
+    Route::put('suspended-carts/void/{queueCode}', [SuspendedCartController::class, 'voidCart']);
+    Route::post('suspended-carts/reset', [SuspendedCartController::class, 'resetCarts']);
 
     // Cashier Remittance & Drawer Close Reconciliation
     Route::get('remittance/summary/{shiftId}', [StationRemittanceController::class, 'getSummary']);

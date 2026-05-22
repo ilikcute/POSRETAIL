@@ -6,20 +6,17 @@ import { useToast } from 'vue-toastification'
 
 // Import Dashboard Components
 import Sidebar from '../../components/dashboard/Sidebar.vue'
-import Header from '../../components/dashboard/Header.vue'
+// Header component removed; using HorizontalTabBar as main navigation
 import Footer from '../../components/dashboard/Footer.vue'
+import HorizontalTabBar from '../../components/dashboard/HorizontalTabBar.vue'
 
 // Import Tab Components
 import SalesOverview from './tabs/SalesOverview.vue'
 import StoreAnalysis from './tabs/StoreAnalysis.vue'
 import ItemAnalysis from './tabs/ItemAnalysis.vue'
 import VoidTransactions from './tabs/VoidTransactions.vue'
-import BrandTab from './tabs/BrandTab.vue'
-import CategoryTab from './tabs/CategoryTab.vue'
-import CustomerTab from './tabs/CustomerTab.vue'
-import UnitTab from './tabs/UnitTab.vue'
-import SupplierTab from './tabs/SupplierTab.vue'
-import StationTab from './tabs/StationTab.vue'
+// Additional tabs may be imported as needed
+// Other tab imports remain unchanged
 import WarehouseTab from './tabs/WarehouseTab.vue'
 import StoreTab from './tabs/StoreTab.vue'
 import RackTab from './tabs/RackTab.vue'
@@ -40,13 +37,22 @@ import LoyaltyTransactionTab from './tabs/LoyaltyTransactionTab.vue'
 import PricingSafeguardTab from './tabs/PricingSafeguardTab.vue'
 import SalesTab from './tabs/SalesTab.vue'
 import StationRemittanceTab from './tabs/StationRemittanceTab.vue'
-
-
+import AccountTab from './tabs/AccountTab.vue'
+import CashTransactionTab from './tabs/CashTransactionTab.vue'
+import ConsignmentTaxTab from './tabs/ConsignmentTaxTab.vue'
+import DebtLedgerTab from './tabs/DebtLedgerTab.vue'
+import FinancialReportTab from './tabs/FinancialReportTab.vue'
+import JournalEntryTab from './tabs/JournalEntryTab.vue'
+import MonthEndTab from './tabs/MonthEndTab.vue'
+import StockOpnameTab from './tabs/StockOpnameTab.vue'
+import ProfileTab from './tabs/ProfileTab.vue'
+import UserManagementTab from './tabs/UserManagementTab.vue'
+import RoleManagementTab from './tabs/RoleManagementTab.vue'
 const router = useRouter()
 const toast = useToast()
 const { currentUser } = useAuth()
 
-const activeTab = ref('overview')
+const activeTab = ref('overview') // default to SalesOverview
 const sidebarCollapsed = ref(false)
 
 const currentTabComponent = computed(() => {
@@ -111,6 +117,37 @@ const currentTabComponent = computed(() => {
       return PurchaseTab
     case 'Station Remittance':
       return StationRemittanceTab
+    case 'Account':
+      return AccountTab
+    case 'Cash Transaction':
+      return CashTransactionTab
+    case 'Consigment Tax':
+      return ConsignmentTaxTab
+    case 'Debt Ledger':
+      return DebtLedgerTab
+    case 'Financial Report':
+      return FinancialReportTab
+    case 'Jurnal Entry':
+      return JournalEntryTab
+    case 'Month End':
+      return MonthEndTab
+    case 'Stock Opname':
+      return StockOpnameTab
+    case 'Profile':
+      return ProfileTab
+    case 'Role Management':
+      return RoleManagementTab
+    case 'Theme Settings':
+    case 'Language Settings':
+    case 'Currency Settings':
+    case 'Company Settings':
+    case 'Outlet Settings':
+    case 'Branch Settings':
+    case 'Company Profile':
+    case 'Outlet Profile':
+    case 'Department Profile':
+    case 'Employee Profile':
+      return SettingTab
     default:
       return SalesOverview
   }
@@ -119,32 +156,27 @@ const currentTabComponent = computed(() => {
 </script>
 
 <template>
-  <div class="h-screen bg-[#eaf6f6] flex flex-row font-sans overflow-hidden">
-    <!-- Sidebar Navigation (collapsible) -->
-    <Sidebar
-      :active-tab="activeTab"
-      :collapsed="sidebarCollapsed"
-      @update:active-tab="activeTab = $event"
-      @update:collapsed="sidebarCollapsed = $event"
-    />
-    
-    <!-- Right Main Area -->
+  <div class="h-screen bg-[#eaf6f6] flex flex-col font-sans overflow-hidden">
+  <!-- Main Layout with Sidebar, Vertical Tab Bar, and Content -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar Navigation -->
+    <Sidebar :active-tab="activeTab" :collapsed="sidebarCollapsed" @update:active-tab="activeTab = $event" @update:collapsed="sidebarCollapsed = $event" />
+
+    <!-- Main Content Area -->
     <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
-      <!-- Header -->
-      <Header :active-tab="activeTab" />
+      <!-- Header (restricted to main area) -->
+        <HorizontalTabBar :active-tab="activeTab" @update:activeTab="activeTab = $event" />
 
       <!-- Main Content -->
       <main class="flex-1 p-5 md:p-7 space-y-5">
-        <!-- Tab Content with Transitions -->
         <Transition name="fade" mode="out-in">
-          <component :is="currentTabComponent" />
+          <component :is="currentTabComponent" :active-tab="activeTab" />
         </Transition>
       </main>
-
-      <!-- Footer -->
       <Footer />
     </div>
   </div>
+</div>
 </template>
 
 <style scoped>

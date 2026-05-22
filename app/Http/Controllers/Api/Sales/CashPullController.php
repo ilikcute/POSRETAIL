@@ -172,8 +172,10 @@ class CashPullController extends Controller
             return redirect()->back()->with('error', 'Nominal penarikan melebihi jumlah kas di laci.');
         }
 
+        $operatorName = $request->user()?->name ?? 'System';
+
         try {
-            $result = DB::transaction(function () use ($shift, $pullAmount, $supervisorId, $notes, $station, $currentCash) {
+            $result = DB::transaction(function () use ($shift, $pullAmount, $supervisorId, $notes, $station, $currentCash, $operatorName) {
                 // 1. Rekam CashTransaction bertipe OUT
                 $cashTx = $this->cashTxRepo->create([
                     'store_id' => Store::first()->id,
@@ -182,7 +184,7 @@ class CashPullController extends Controller
                     'amount' => $pullAmount,
                     'category' => 'setor_tengah',
                     'payment_method' => 'cash',
-                    'description' => "{$notes} [Petugas Otoritas: ".auth()->user()->name.']',
+                    'description' => "{$notes} [Petugas Otoritas: {$operatorName}]",
                     'created_by' => $supervisorId,
                 ]);
 
@@ -202,7 +204,7 @@ class CashPullController extends Controller
 
                 $journal = $this->journalRepo->create([
                     'transaction_date' => now()->toDateString(),
-                    'description' => "{$notes} | Stasiun: {$station->name} | Otoritas: ".auth()->user()->name,
+                    'description' => "{$notes} | Stasiun: {$station->name} | Otoritas: {$operatorName}",
                     'created_by' => $supervisorId,
                     'items' => [
                         [

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Repositories\Contracts\Auth\RoleRepositoryInterface;
 use App\Repositories\Contracts\Auth\UserRepositoryInterface;
 use App\Repositories\Contracts\Finance\AccountRepositoryInterface;
 use App\Repositories\Contracts\Finance\CashTransactionRepositoryInterface;
@@ -16,6 +17,7 @@ use App\Repositories\Contracts\Master\CustomerRepositoryInterface;
 use App\Repositories\Contracts\Master\ProductRepositoryInterface;
 use App\Repositories\Contracts\Master\ProductVariantRepositoryInterface;
 use App\Repositories\Contracts\Master\RackRepositoryInterface;
+use App\Repositories\Contracts\Master\SettingRepositoryInterface;
 use App\Repositories\Contracts\Master\StationRepositoryInterface;
 use App\Repositories\Contracts\Master\StoreRepositoryInterface;
 use App\Repositories\Contracts\Master\SupplierRepositoryInterface;
@@ -28,6 +30,7 @@ use App\Repositories\Contracts\Sales\PromotionRepositoryInterface;
 use App\Repositories\Contracts\Sales\SaleRepositoryInterface;
 use App\Repositories\Contracts\Sales\ShiftRepositoryInterface;
 use App\Repositories\Contracts\Sales\SuspendedCartRepositoryInterface;
+use App\Repositories\Eloquent\Auth\RoleRepository;
 use App\Repositories\Eloquent\Auth\UserRepository;
 use App\Repositories\Eloquent\Finance\AccountRepository;
 use App\Repositories\Eloquent\Finance\CashTransactionRepository;
@@ -42,6 +45,7 @@ use App\Repositories\Eloquent\Master\CustomerRepository;
 use App\Repositories\Eloquent\Master\ProductRepository;
 use App\Repositories\Eloquent\Master\ProductVariantRepository;
 use App\Repositories\Eloquent\Master\RackRepository;
+use App\Repositories\Eloquent\Master\SettingRepository;
 use App\Repositories\Eloquent\Master\StationRepository;
 use App\Repositories\Eloquent\Master\StoreRepository;
 use App\Repositories\Eloquent\Master\SupplierRepository;
@@ -63,6 +67,11 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(
+            RoleRepositoryInterface::class,
+            RoleRepository::class
+        );
+
         $this->app->bind(
             StoreRepositoryInterface::class,
             StoreRepository::class
@@ -191,6 +200,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             SuspendedCartRepositoryInterface::class,
             SuspendedCartRepository::class
+        );
+
+        $this->app->bind(
+            SettingRepositoryInterface::class,
+            SettingRepository::class
         );
     }
 

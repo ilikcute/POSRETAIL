@@ -2,9 +2,11 @@
 
 namespace App\Repositories\Eloquent\Finance;
 
+use App\Exceptions\CashTransactionException;
 use App\Models\Finance\Account;
 use App\Models\Finance\CashTransaction;
 use App\Models\Finance\JournalEntry;
+use App\Models\Sales\Shift;
 use App\Repositories\Contracts\Finance\CashTransactionRepositoryInterface;
 use App\Repositories\Eloquent\BaseRepository;
 use Illuminate\Database\Eloquent\Model;
@@ -17,42 +19,194 @@ class CashTransactionRepository extends BaseRepository implements CashTransactio
         parent::__construct($model);
     }
 
+    /**
+     * Create a new cash transaction and post the double-entry journal entry.
+     *
+     * @throws CashTransactionException
+     */
     public function create(array $attributes): Model
     {
         return DB::transaction(function () use ($attributes) {
+            // Check shift status if shift_id is provided
+            if (! empty($attributes['shift_id'])) {
+                $shift = Shift::find($attributes['shift_id']);
+                if ($shift && $shift->status === 'closed') {
+                    throw new CashTransactionException(
+                        'Tidak dapat membuat transaksi kas pada shift yang sudah ditutup.',
+                        ['shift_id' => $attributes['shift_id']]
+                    );
+                }
+            }
+
+            $type = $attributes['type'];
+            $amount = $attributes['amount'];
+            $paymentMethod = $attributes['payment_method'] ?? 'cash';
+
+            // Lock accounts for update to prevent race conditions on balance updates
+            $cashAccount = Account::where('code', '1101')->lockForUpdate()->first();
+            $bankAccount = Account::where('code', '1102')->lockForUpdate()->first();
+
+            $isSetorTengah = ($attributes['category'] ?? '') === 'setor_tengah';
+            $otherRevenueAccount = null;
+            $electricityAccount = null;
+
+            if (! $isSetorTengah) {
+                $otherRevenueAccount = Account::where('code', '4201')->lockForUpdate()->first();
+                $electricityAccount = Account::where('code', '5201')->lockForUpdate()->first();
+            }
+
+            if (! $cashAccount || ! $bankAccount || (! $isSetorTengah && (! $otherRevenueAccount || ! $electricityAccount))) {
+                $missingCodes = [];
+                if (! $cashAccount) {
+                    $missingCodes[] = '1101';
+                }
+                if (! $bankAccount) {
+                    $missingCodes[] = '1102';
+                }
+                if (! $isSetorTengah) {
+                    if (! $otherRevenueAccount) {
+                        $missingCodes[] = '4201';
+                    }
+                    if (! $electricityAccount) {
+                        $missingCodes[] = '5201';
+                    }
+                }
+                throw new CashTransactionException(
+                    'Akun keuangan sistem belum lengkap ('.implode(', ', $missingCodes).'). Silakan hubungi administrator.',
+                    ['missing_accounts' => true]
+                );
+            }
+
+            $mainAccount = ($paymentMethod === 'cash') ? $cashAccount : $bankAccount;
+
+            // Verify if there is enough balance for cash-out transaction
+            if ($type === 'out' && $mainAccount->balance < $amount) {
+                throw new CashTransactionException(
+                    "Saldo {$mainAccount->name} tidak mencukupi untuk melakukan transaksi keluar ini.",
+                    [
+                        'account_name' => $mainAccount->name,
+                        'available_balance' => (float) $mainAccount->balance,
+                        'required_amount' => (float) $amount,
+                    ]
+                );
+            }
+
             $attributes['created_by'] = auth()->id() ?? 1;
             $transaction = parent::create($attributes);
 
-            $this->postCashJournalEntry($transaction);
+            if (! $isSetorTengah) {
+                $this->postCashJournalEntry($transaction, $cashAccount, $bankAccount, $otherRevenueAccount, $electricityAccount);
+            }
 
             return $transaction;
         });
     }
 
-    protected function postCashJournalEntry(CashTransaction $transaction)
+    /**
+     * Update an existing cash transaction and adjust journal entries.
+     *
+     * @throws CashTransactionException
+     */
+    public function update(int $id, array $attributes): Model
     {
-        $cashAccount = Account::where('code', '1101')->first();
-        $bankAccount = Account::where('code', '1102')->first();
-        $otherRevenueAccount = Account::where('code', '4201')->first();
-        $electricityAccount = Account::where('code', '5201')->first();
+        return DB::transaction(function () use ($id, $attributes) {
+            $transaction = $this->findOrFail($id);
 
-        if (! $cashAccount || ! $bankAccount || ! $otherRevenueAccount || ! $electricityAccount) {
-            return;
-        }
+            // Revert old journal entry effects first
+            $isSetorTengahBefore = $transaction->category === 'setor_tengah';
+            if (! $isSetorTengahBefore) {
+                $this->reverseCashJournalEntry($transaction);
+            }
 
-        // Tentukan akun kas utama yang terpengaruh
+            // If shift_id is updated, check new shift status
+            $newShiftId = $attributes['shift_id'] ?? $transaction->shift_id;
+            if ($newShiftId) {
+                $shift = Shift::find($newShiftId);
+                if ($shift && $shift->status === 'closed') {
+                    throw new CashTransactionException(
+                        'Tidak dapat mengubah transaksi kas pada shift yang sudah ditutup.',
+                        ['shift_id' => $newShiftId]
+                    );
+                }
+            }
+
+            // Update the record
+            $transaction->update($attributes);
+            $transaction = $transaction->refresh();
+
+            // Load and lock accounts to post the updated journal entry
+            $cashAccount = Account::where('code', '1101')->lockForUpdate()->first();
+            $bankAccount = Account::where('code', '1102')->lockForUpdate()->first();
+
+            $isSetorTengah = $transaction->category === 'setor_tengah';
+            $otherRevenueAccount = null;
+            $electricityAccount = null;
+
+            if (! $isSetorTengah) {
+                $otherRevenueAccount = Account::where('code', '4201')->lockForUpdate()->first();
+                $electricityAccount = Account::where('code', '5201')->lockForUpdate()->first();
+            }
+
+            if (! $cashAccount || ! $bankAccount || (! $isSetorTengah && (! $otherRevenueAccount || ! $electricityAccount))) {
+                throw new CashTransactionException(
+                    'Akun keuangan sistem belum lengkap. Silakan hubungi administrator.',
+                    ['missing_accounts' => true]
+                );
+            }
+
+            $mainAccount = ($transaction->payment_method === 'cash') ? $cashAccount : $bankAccount;
+
+            // Verify if there is enough balance for cash-out transaction after update
+            if ($transaction->type === 'out' && $mainAccount->balance < $transaction->amount) {
+                throw new CashTransactionException(
+                    "Saldo {$mainAccount->name} tidak mencukupi setelah update transaksi keluar.",
+                    [
+                        'account_name' => $mainAccount->name,
+                        'available_balance' => (float) $mainAccount->balance,
+                        'required_amount' => (float) $transaction->amount,
+                    ]
+                );
+            }
+
+            // Post updated journal entry
+            if (! $isSetorTengah) {
+                $this->postCashJournalEntry($transaction, $cashAccount, $bankAccount, $otherRevenueAccount, $electricityAccount);
+            }
+
+            return $transaction;
+        });
+    }
+
+    /**
+     * Delete an existing cash transaction and its journal entries.
+     */
+    public function delete(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            $transaction = $this->findOrFail($id);
+
+            // Revert journal entry and account balances first
+            if ($transaction->category !== 'setor_tengah') {
+                $this->reverseCashJournalEntry($transaction);
+            }
+
+            // Delete the cash transaction
+            return $transaction->delete();
+        });
+    }
+
+    /**
+     * Post double-entry journal entry for a cash transaction.
+     */
+    protected function postCashJournalEntry(
+        CashTransaction $transaction,
+        Account $cashAccount,
+        Account $bankAccount,
+        Account $otherRevenueAccount,
+        Account $electricityAccount
+    ): void {
         $mainAccount = ($transaction->payment_method === 'cash') ? $cashAccount : $bankAccount;
-
-        // Tentukan akun lawan berdasarkan tipe transaksi
-        if ($transaction->type === 'in') {
-            // UANG MASUK (Penerimaan)
-            // Lawan: Pendapatan Lain-lain (Revenue)
-            $oppositeAccount = $otherRevenueAccount;
-        } else {
-            // UANG KELUAR (Pengeluaran)
-            // Lawan: Beban Listrik / Beban Operasional Lainnya (Expense)
-            $oppositeAccount = $electricityAccount;
-        }
+        $oppositeAccount = ($transaction->type === 'in') ? $otherRevenueAccount : $electricityAccount;
 
         $entry = JournalEntry::create([
             'reference_no' => 'JV-CASH-'.str_pad($transaction->id, 6, '0', STR_PAD_LEFT),
@@ -97,6 +251,48 @@ class CashTransactionRepository extends BaseRepository implements CashTransactio
             ]);
             $mainAccount->balance -= $transaction->amount;
             $mainAccount->save();
+        }
+    }
+
+    /**
+     * Reverse a posted journal entry and restore account balances.
+     */
+    protected function reverseCashJournalEntry(CashTransaction $transaction): void
+    {
+        $referenceNo = 'JV-CASH-'.str_pad($transaction->id, 6, '0', STR_PAD_LEFT);
+        $entry = JournalEntry::where('reference_no', $referenceNo)->first();
+
+        if ($entry) {
+            $cashAccount = Account::where('code', '1101')->lockForUpdate()->first();
+            $bankAccount = Account::where('code', '1102')->lockForUpdate()->first();
+            $otherRevenueAccount = Account::where('code', '4201')->lockForUpdate()->first();
+            $electricityAccount = Account::where('code', '5201')->lockForUpdate()->first();
+
+            if ($cashAccount && $bankAccount && $otherRevenueAccount && $electricityAccount) {
+                $mainAccount = ($transaction->payment_method === 'cash') ? $cashAccount : $bankAccount;
+                $oppositeAccount = ($transaction->type === 'in') ? $otherRevenueAccount : $electricityAccount;
+
+                if ($transaction->type === 'in') {
+                    // Revert DEBET (subtract balance)
+                    $mainAccount->balance -= $transaction->amount;
+                    $mainAccount->save();
+
+                    // Revert KREDIT (subtract balance)
+                    $oppositeAccount->balance -= $transaction->amount;
+                    $oppositeAccount->save();
+                } else {
+                    // Revert DEBET (subtract balance)
+                    $oppositeAccount->balance -= $transaction->amount;
+                    $oppositeAccount->save();
+
+                    // Revert KREDIT (add balance back)
+                    $mainAccount->balance += $transaction->amount;
+                    $mainAccount->save();
+                }
+            }
+
+            // cascade delete deletes items
+            $entry->delete();
         }
     }
 }

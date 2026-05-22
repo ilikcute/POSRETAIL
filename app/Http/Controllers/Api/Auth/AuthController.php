@@ -48,7 +48,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return $this->successResponse([
-            'user' => $user->load('roles'), // load roles dari spatie
+            'user' => $user->load(['roles.permissions', 'permissions']), // load roles & permissions dari spatie
             'access_token' => $token,
             'token_type' => 'Bearer',
         ], 'Login berhasil');
@@ -65,7 +65,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return $this->successResponse(
-            $request->user()->load('roles'),
+            $request->user()->load(['roles.permissions', 'permissions']),
             'Data user berhasil diambil'
         );
     }

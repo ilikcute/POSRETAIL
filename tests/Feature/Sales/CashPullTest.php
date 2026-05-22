@@ -41,7 +41,7 @@ class CashPullTest extends TestCase
             'code' => '1101',
             'name' => 'Kas Laci POS',
             'type' => 'asset',
-            'balance' => 0.00,
+            'balance' => 2000000.00,
             'description' => 'Kas Laci',
         ]);
 

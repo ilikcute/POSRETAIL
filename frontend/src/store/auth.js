@@ -33,6 +33,29 @@ const hasRole = (roleName) => {
   return state.user.roles.some(role => role.name === roleName)
 }
 
+// Helper untuk mengecek permission Spatie
+const hasPermission = (permissionName) => {
+  if (!state.user) return false
+  
+  // Super Admin bypass
+  if (hasRole('super_admin')) return true
+  
+  // Cek dari permissions di dalam roles
+  if (state.user.roles) {
+    const hasIt = state.user.roles.some(role => 
+      role.permissions && role.permissions.some(p => p.name === permissionName)
+    )
+    if (hasIt) return true
+  }
+  
+  // Cek dari direct permissions milik user (jika ada)
+  if (state.user.permissions) {
+    return state.user.permissions.some(p => p.name === permissionName)
+  }
+  
+  return false
+}
+
 // Actions
 const login = async (email, password) => {
   state.loading = true
@@ -153,6 +176,7 @@ export const useAuth = () => {
     authError,
     isAuthLoading,
     hasRole,
+    hasPermission,
     login,
     register,
     logout,

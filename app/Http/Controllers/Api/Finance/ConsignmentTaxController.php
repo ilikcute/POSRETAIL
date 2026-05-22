@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Finance;
 
+use App\Exceptions\ConsignmentTaxException;
 use App\Http\Controllers\Controller;
 use App\Models\Finance\Account;
 use App\Models\Finance\JournalEntry;
@@ -16,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ConsignmentTaxController extends Controller
@@ -236,67 +238,98 @@ class ConsignmentTaxController extends Controller
      */
     public function settleConsignment(Request $request): JsonResponse
     {
-        $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
-            'bank_account_code' => 'required|exists:accounts,code', // misal 1101 Kas atau 1102 Bank
-            'payment_amount' => 'required|numeric|min:1',
-            'notes' => 'nullable|string',
-        ]);
-
-        $supplierId = $request->input('supplier_id');
-        $bankAccountCode = $request->input('bank_account_code');
-        $paymentAmount = (float) $request->input('payment_amount');
-        $notes = $request->input('notes') ?? 'Pelunasan Hutang Konsinyasi';
-
-        $supplier = Supplier::findOrFail($supplierId);
-        $accounts = $this->getOrCreateAccounts();
-
-        $result = DB::transaction(function () use ($supplier, $bankAccountCode, $paymentAmount, $notes, $accounts) {
-            // Posting Jurnal Pelunasan Konsinyasi
-            // Debit: 2102 (Hutang Konsinyasi) -> Liability berkurang
-            // Kredit: bank_account_code (Kas/Bank) -> Asset berkurang
-            $consignmentAccount = $accounts['hutang_konsinyasi'];
-            $cashAccount = Account::where('code', $bankAccountCode)->firstOrFail();
-
-            $journalRef = 'JV-CONS-'.now()->format('Ymd').'-'.strtoupper(Str::random(4));
-
-            $journal = JournalEntry::create([
-                'reference_no' => $journalRef,
-                'transaction_date' => now()->toDateString(),
-                'description' => "{$notes} ke [Supplier: {$supplier->name}]",
-                'created_by' => auth()->id() ?? 1,
+        try {
+            $request->validate([
+                'supplier_id' => 'required|exists:suppliers,id',
+                'bank_account_code' => 'required|exists:accounts,code', // misal 1101 Kas atau 1102 Bank
+                'payment_amount' => 'required|numeric|min:0.01',
+                'notes' => 'nullable|string',
             ]);
 
-            // Debet Hutang Konsinyasi
-            JournalItem::create([
-                'journal_entry_id' => $journal->id,
-                'account_id' => $consignmentAccount->id,
-                'debit' => $paymentAmount,
-                'credit' => 0.0,
-            ]);
-            $consignmentAccount->decrement('balance', $paymentAmount);
+            $supplierId = $request->input('supplier_id');
+            $bankAccountCode = $request->input('bank_account_code');
+            $paymentAmount = (float) $request->input('payment_amount');
+            $notes = $request->input('notes') ?? 'Pelunasan Hutang Konsinyasi';
 
-            // Kredit Kas / Bank
-            JournalItem::create([
-                'journal_entry_id' => $journal->id,
-                'account_id' => $cashAccount->id,
-                'debit' => 0.0,
-                'credit' => $paymentAmount,
-            ]);
-            $cashAccount->decrement('balance', $paymentAmount);
+            $supplier = Supplier::findOrFail($supplierId);
 
-            return [
-                'success' => true,
-                'data' => [
+            // Check if supplier is active
+            if (! $supplier->is_active) {
+                throw new ConsignmentTaxException("Supplier {$supplier->name} sedang tidak aktif.", [
+                    'supplier_id' => $supplierId,
+                ]);
+            }
+
+            $accounts = $this->getOrCreateAccounts();
+
+            $result = DB::transaction(function () use ($supplier, $bankAccountCode, $paymentAmount, $notes, $accounts) {
+                // Get fresh instances with lock for update
+                $consignmentAccount = Account::where('id', $accounts['hutang_konsinyasi']->id)->lockForUpdate()->firstOrFail();
+                $cashAccount = Account::where('code', $bankAccountCode)->lockForUpdate()->firstOrFail();
+
+                // Validate if cash account is active
+                if (! $cashAccount->is_active) {
+                    throw new ConsignmentTaxException("Akun Kas/Bank dengan kode {$bankAccountCode} sedang tidak aktif.", [
+                        'bank_account_code' => $bankAccountCode,
+                    ]);
+                }
+
+                // Validate if cash account balance is sufficient
+                if ((float) $cashAccount->balance < $paymentAmount) {
+                    throw new ConsignmentTaxException('Saldo Kas/Bank tidak mencukupi untuk melakukan pembayaran pelunasan. Saldo saat ini: Rp '.number_format($cashAccount->balance, 2, ',', '.'), [
+                        'bank_account_code' => $bankAccountCode,
+                        'current_balance' => $cashAccount->balance,
+                        'payment_amount' => $paymentAmount,
+                    ]);
+                }
+
+                $journalRef = 'JV-CONS-'.now()->format('Ymd').'-'.strtoupper(Str::random(4));
+
+                $journal = JournalEntry::create([
+                    'reference_no' => $journalRef,
+                    'transaction_date' => now()->toDateString(),
+                    'description' => "{$notes} ke [Supplier: {$supplier->name}]",
+                    'created_by' => auth()->id() ?? 1,
+                ]);
+
+                // Debet Hutang Konsinyasi (liability decreases)
+                JournalItem::create([
+                    'journal_entry_id' => $journal->id,
+                    'account_id' => $consignmentAccount->id,
+                    'debit' => $paymentAmount,
+                    'credit' => 0.0,
+                ]);
+                $consignmentAccount->decrement('balance', $paymentAmount);
+
+                // Kredit Kas / Bank (asset decreases)
+                JournalItem::create([
+                    'journal_entry_id' => $journal->id,
+                    'account_id' => $cashAccount->id,
+                    'debit' => 0.0,
+                    'credit' => $paymentAmount,
+                ]);
+                $cashAccount->decrement('balance', $paymentAmount);
+
+                return [
                     'supplier_id' => $supplier->id,
                     'supplier_name' => $supplier->name,
                     'amount_paid' => $paymentAmount,
                     'bank_account' => $cashAccount->name,
                     'journal_entry' => $journalRef,
-                ],
-            ];
-        });
+                ];
+            });
 
-        return $this->successResponse($result['data'], 'Consignment supplier settlement processed and journalized successfully');
+            return $this->successResponse($result, 'Consignment supplier settlement processed and journalized successfully');
+
+        } catch (ConsignmentTaxException $e) {
+            return $this->errorResponse($e->getMessage(), 422, $e->contextData());
+        } catch (\Throwable $e) {
+            Log::error('ConsignmentTaxController::settleConsignment failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return $this->errorResponse('Terjadi kesalahan sistem saat memproses pelunasan: '.$e->getMessage(), 500);
+        }
     }
 }

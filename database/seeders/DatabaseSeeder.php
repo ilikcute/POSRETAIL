@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             StockDisposalSeeder::class,
             DailyCloseSeeder::class,
             MonthEndSeeder::class,
+            SettingSeeder::class,
         ]);
     }
 }

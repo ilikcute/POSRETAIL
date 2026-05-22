@@ -17,22 +17,16 @@ const props = defineProps({
 
 const emit = defineEmits(['update:activeTab', 'update:collapsed'])
 
-const { logout } = useAuth()
+const { logout, hasRole, hasPermission } = useAuth()
 const router = useRouter()
 const toast = useToast()
 
+const isSuperAdmin = computed(() => hasRole('super_admin'))
+
 // Menu structure with groups and customized icon mapping matching each feature meaning
 const menuGroups = [
-  {
-    name: 'Dashboard',
-    icon: 'home',
-    items: [
-      { id: 'overview', icon: 'chart-pie', title: 'Sales Overview' },
-      { id: 'store', icon: 'store', title: 'Store Analysis' },
-      { id: 'item', icon: 'document-chart', title: 'Item Analysis' },
-      { id: 'void', icon: 'x-circle', title: 'Voided Transactions' }
-    ]
-  },
+  // Dashboard group removed: navigation now handled by horizontal tabs
+
   {
     name: 'Master',
     icon: 'database',
@@ -62,8 +56,7 @@ const menuGroups = [
       { id: 'Pricing Safe guard', icon: 'shield', title: 'Pricing Safeguard' },
       { id: 'Promotion', icon: 'megaphone', title: 'Promotion' },
       { id: 'Sales', icon: 'shopping-cart', title: 'Sales' },
-      { id: 'Station Remittance', icon: 'arrow-right-left', title: 'Station Remittance' },
-      { id: 'Suspended', icon: 'pause-circle', title: 'Suspended' }
+      { id: 'Station Remittance', icon: 'arrow-right-left', title: 'Station Remittance' }
     ] 
   },
   {
@@ -99,30 +92,37 @@ const menuGroups = [
     ]
   },
   {
-    name: 'Setting',
-    icon: 'setting',
+    name: 'Akun',
+    icon: 'user',
     items: [
-      { id: 'User Management', icon: 'user', title: 'User Management' },
-      { id: 'Role Management', icon: 'shield', title: 'Role Management' },
-      { id: 'Privilege Management', icon: 'lock-closed', title: 'Privilege Management' },
-      { id: 'Menu Management', icon: 'list', title: 'Menu Management' },
-      { id: 'Form Management', icon: 'document-text', title: 'Form Management' },
-      { id: 'Button Management', icon: 'button', title: 'Button Management' },
-      { id: 'Theme Settings', icon: 'palette', title: 'Theme Settings' },
-      { id: 'Language Settings', icon: 'globe-alt', title: 'Language Settings' },
-      { id: 'Currency Settings', icon: 'currency-dollar', title: 'Currency Settings' },
-      { id: 'Company Settings', icon: 'building-office', title: 'Company Settings' },
-      { id: 'Outlet Settings', icon: 'storefront', title: 'Outlet Settings' },
-      { id: 'Department Settings', icon: 'briefcase', title: 'Department Settings' },
-      { id: 'Employee Settings', icon: 'user-group', title: 'Employee Settings' },
-      { id: 'Branch Settings', icon: 'building', title: 'Branch Settings' },
-      { id: 'Company Profile', icon: 'identification', title: 'Company Profile' },
-      { id: 'Outlet Profile', icon: 'identification', title: 'Outlet Profile' },
-      { id: 'Department Profile', icon: 'identification', title: 'Department Profile' },
-      { id: 'Employee Profile', icon: 'identification', title: 'Employee Profile' }
+      { id: 'Profile', icon: 'user-circle', title: 'Profil Saya' }
+    ]
+  },
+  {
+    name: 'Setting',
+    icon: 'cog',
+    items: [
+      { id: 'User Management', icon: 'user', title: 'User Management', permission: 'view users' },
+      { id: 'Role Management', icon: 'shield', title: 'Role Management', permission: 'view roles' },
+      { id: 'Theme Settings', icon: 'palette', title: 'Theme Settings', permission: 'view settings' },
+      { id: 'Language Settings', icon: 'globe-alt', title: 'Language Settings', permission: 'view settings' },
+      { id: 'Currency Settings', icon: 'currency-dollar', title: 'Currency Settings', permission: 'view settings' }
     ]
   }
 ]
+
+// Only expose groups and items the current user is allowed to see
+const visibleMenuGroups = computed(() => {
+  return menuGroups
+    .map(group => {
+      const filteredItems = group.items.filter(item => {
+        if (item.permission && !hasPermission(item.permission)) return false
+        return true
+      })
+      return { ...group, items: filteredItems }
+    })
+    .filter(group => group.items.length > 0)
+})
 
 // State for expanded/collapsed groups (only used when sidebar is expanded)
 const expandedGroups = ref({
@@ -131,13 +131,16 @@ const expandedGroups = ref({
   Sales: false,
   Purchases: false,
   Inventory: false,
-  Finance: false
+  Finance: false,
+  Akun: false,
+  Setting: false
 })
 
-// Flatten all leaf items for collapsed mode
+// Flatten all leaf items for collapsed mode (respects visibility rules)
 const flatLeafItems = computed(() => {
-  return menuGroups.flatMap(group => group.items)
+  return visibleMenuGroups.value.flatMap(group => group.items)
 })
+
 
 // Automatically expand the group containing the active tab
 watch(
@@ -212,6 +215,10 @@ const iconPaths = {
   'document-text': '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 3h6m-6 3h3" />',
   'document-chart': '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 6.75h.007m-.007 4.5h.007M9 9h.007M9 12h.007M9 15h.007M10.5 9h.007M10.5 12h.007M10.5 15h.007M12 9h.007M12 12h.007M12 15h.007M16.5 9h.007M16.5 12h.007M16.5 15h.007" />',
   'user-group': '<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m-4.674-6.13a3 3 0 11-2.77-4.21 3 3 0 012.77 4.21z" />',
+  'user-circle': '<path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />',
+  'palette': '<path stroke-linecap="round" stroke-linejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" />',
+  'globe-alt': '<path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />',
+  'currency-dollar': '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
   'cog': '<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.43.992a6.759 6.759 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.87l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.645-.87l.213-1.281z" />',
   'adjustments': '<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />',
   'check-badge': '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.746 3.746 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />',
@@ -285,7 +292,7 @@ const iconPaths = {
 
     <!-- Navigation: Expanded Mode (with groups) -->
     <nav v-else class="flex-1 flex flex-col w-full overflow-y-auto px-3">
-      <div v-for="group in menuGroups" :key="group.name" class="mb-2">
+      <div v-for="group in visibleMenuGroups" :key="group.name" class="mb-2">
         <!-- Group Header -->
         <div
           @click="toggleGroup(group.name)"

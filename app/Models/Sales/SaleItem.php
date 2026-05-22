@@ -22,6 +22,9 @@ class SaleItem extends Model
         'discount',
         'tax',
         'subtotal',
+        'purchase_type',
+        'consignment_commission_amount',
+        'consignment_payable_amount',
     ];
 
     protected $casts = [
@@ -31,6 +34,8 @@ class SaleItem extends Model
         'discount' => 'decimal:2',
         'tax' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'consignment_commission_amount' => 'decimal:2',
+        'consignment_payable_amount' => 'decimal:2',
     ];
 
     public function sale()

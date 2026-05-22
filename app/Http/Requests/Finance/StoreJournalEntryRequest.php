@@ -14,7 +14,7 @@ class StoreJournalEntryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'transaction_date' => 'required|date',
+            'transaction_date' => 'required|date_format:Y-m-d',
             'description' => 'nullable|string',
 
             // Journal items must balance (Debit sum = Credit sum)

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\Auth\RoleController;
+use App\Http\Controllers\Api\Auth\UserController;
 use App\Http\Controllers\Api\Finance\AccountController;
 use App\Http\Controllers\Api\Finance\CashTransactionController;
 use App\Http\Controllers\Api\Finance\ConsignmentTaxController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\Api\Master\PriceTagController;
 use App\Http\Controllers\Api\Master\ProductController;
 use App\Http\Controllers\Api\Master\ProductVariantController;
 use App\Http\Controllers\Api\Master\RackController;
+use App\Http\Controllers\Api\Master\SettingController;
 use App\Http\Controllers\Api\Master\StationController;
 use App\Http\Controllers\Api\Master\StoreController;
 use App\Http\Controllers\Api\Master\SupplierController;
@@ -49,7 +52,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    Route::get('/users', [AuthController::class, 'users']);
+    Route::get('/users/active', [AuthController::class, 'users']); // backward compat
+
+    // User Management
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
+    Route::patch('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
+    Route::post('/users/{user}/sync-roles', [UserController::class, 'syncRoles']);
+
+    // Role & Permission Management
+    Route::get('/roles/permissions/all', [RoleController::class, 'permissions']);
+    Route::post('/roles/{role}/sync-permissions', [RoleController::class, 'syncPermissions']);
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::post('/roles', [RoleController::class, 'store']);
+    Route::get('/roles/{role}', [RoleController::class, 'show']);
+    Route::put('/roles/{role}', [RoleController::class, 'update']);
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
 
     // Master Data
     Route::apiResource('stores', StoreController::class);
@@ -58,6 +79,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('racks', RackController::class);
     Route::get('racks/{id}/planogram', [RackController::class, 'planogram']);
     Route::post('racks/{id}/planogram', [RackController::class, 'updatePlanogram']);
+
+    // Settings
+    Route::get('settings', [SettingController::class, 'index']);
+    Route::post('settings', [SettingController::class, 'update']);
+    Route::get('settings/{key}', [SettingController::class, 'show']);
+    Route::put('settings/{key}', [SettingController::class, 'updateSingle']);
 
     // Master Product
     Route::apiResource('categories', CategoryController::class);
@@ -87,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('shifts', ShiftController::class);
     Route::get('daily-closes/preview', [DailyCloseController::class, 'preview']);
     Route::apiResource('daily-closes', DailyCloseController::class);
+    Route::get('month-ends/preview', [MonthEndController::class, 'preview']);
     Route::apiResource('month-ends', MonthEndController::class);
     Route::apiResource('cash-transactions', CashTransactionController::class);
 

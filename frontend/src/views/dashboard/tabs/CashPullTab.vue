@@ -115,9 +115,13 @@ const fetchHistory = async () => {
   loadingHistory.value = true
   try {
     const res = await api.get('/cash-transactions')
-    const data = res.data?.data || res.data || []
+    const raw = res.data?.data ?? res.data ?? []
+    const data = Array.isArray(raw) ? raw : []
     // Filter and show all 'setor_tengah' category or general cash pulls
-    recentTransactions.value = data.filter(t => t.category === 'setor_tengah' || (t.type === 'out' && t.description?.toLowerCase().includes('setor tengah')))
+    recentTransactions.value = data.filter(t =>
+      t.category === 'setor_tengah' ||
+      (t.type === 'out' && t.description?.toLowerCase().includes('setor tengah'))
+    )
   } catch (error) {
     console.error('Error fetching cash pull history:', error)
   } finally {
